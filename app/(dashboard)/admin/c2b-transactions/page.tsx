@@ -89,6 +89,13 @@ interface CategoriesData {
   contributionCategories: Category[];
 }
 
+interface ResolveUnmatchedC2BData {
+  resolveUnmatchedC2b: {
+    success: boolean;
+    message: string;
+  };
+}
+
 /* ── Status badge helpers ─────────────────────────────────────── */
 
 function statusBadge(status: C2BTransaction["status"]) {
@@ -134,7 +141,7 @@ function ResolveModal({
 }: ResolveModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const [resolveC2B, { loading }] = useMutation(RESOLVE_UNMATCHED_C2B, {
+  const [resolveC2B, { loading }] = useMutation<ResolveUnmatchedC2BData>(RESOLVE_UNMATCHED_C2B, {
     onCompleted: (data) => {
       if (data.resolveUnmatchedC2b.success) {
         toast.success("Transaction resolved successfully");
