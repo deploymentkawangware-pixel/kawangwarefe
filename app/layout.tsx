@@ -6,7 +6,7 @@ import { ApolloWrapper } from "@/lib/graphql/apollo-client";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { StructuredData } from "@/components/seo/structured-data";
 import "./globals.css";
-
+//Because we must deploy
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
