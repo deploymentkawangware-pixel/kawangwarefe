@@ -46,6 +46,29 @@ interface GetCategoriesData {
   contributionCategories: Category[];
 }
 
+interface CreateCategoryData {
+  createCategory: {
+    success: boolean;
+    message: string;
+    category?: Category;
+  };
+}
+
+interface UpdateCategoryData {
+  updateCategory: {
+    success: boolean;
+    message: string;
+    category?: Category;
+  };
+}
+
+interface DeleteCategoryData {
+  deleteCategory: {
+    success: boolean;
+    message: string;
+  };
+}
+
 function CategoryManagementPageContent() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,9 +88,9 @@ function CategoryManagementPageContent() {
   const { data, loading, refetch } = useQuery<GetCategoriesData>(GET_ALL_CATEGORIES);
   const categories = data?.contributionCategories || [];
 
-  const [createCategory, { loading: creating }] = useMutation(CREATE_CATEGORY);
-  const [updateCategory, { loading: updating }] = useMutation(UPDATE_CATEGORY);
-  const [deleteCategory, { loading: deleting }] = useMutation(DELETE_CATEGORY);
+  const [createCategory, { loading: creating }] = useMutation<CreateCategoryData>(CREATE_CATEGORY);
+  const [updateCategory, { loading: updating }] = useMutation<UpdateCategoryData>(UPDATE_CATEGORY);
+  const [deleteCategory, { loading: deleting }] = useMutation<DeleteCategoryData>(DELETE_CATEGORY);
 
   const clearMessages = () => {
     setSuccess("");

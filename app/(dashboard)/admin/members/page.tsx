@@ -50,6 +50,29 @@ interface MembersData {
   membersList: Member[];
 }
 
+interface UpdateMemberData {
+  updateMember: {
+    success: boolean;
+    message: string;
+    member?: Member;
+  };
+}
+
+interface ToggleMemberStatusData {
+  toggleMemberStatus: {
+    success: boolean;
+    message: string;
+    member?: Member;
+  };
+}
+
+interface DeleteMemberData {
+  deleteMember: {
+    success: boolean;
+    message: string;
+  };
+}
+
 function MembersPageContent() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -68,9 +91,9 @@ function MembersPageContent() {
     },
   });
 
-  const [updateMember, { loading: updating }] = useMutation(UPDATE_MEMBER);
-  const [toggleStatus] = useMutation(TOGGLE_MEMBER_STATUS);
-  const [deleteMember] = useMutation(DELETE_MEMBER);
+  const [updateMember, { loading: updating }] = useMutation<UpdateMemberData>(UPDATE_MEMBER);
+  const [toggleStatus] = useMutation<ToggleMemberStatusData>(TOGGLE_MEMBER_STATUS);
+  const [deleteMember] = useMutation<DeleteMemberData>(DELETE_MEMBER);
 
   const members = data?.membersList || [];
 

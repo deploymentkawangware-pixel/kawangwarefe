@@ -6,9 +6,10 @@
  * Using @apollo/client-integration-nextjs for Next.js optimization
  */
 
-import { ApolloLink, HttpLink } from "@apollo/client";
-import { onError } from "@apollo/client/link/error";
+import { ApolloLink, HttpLink, Observable } from "@apollo/client";
+import { ErrorLink } from "@apollo/client/link/error";
 import { setContext } from "@apollo/client/link/context";
+import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import {
   ApolloClient,
   ApolloNextAppProvider,
@@ -77,15 +78,16 @@ function makeClient() {
   });
 
   // Error link to handle auth errors and auto-refresh tokens
-  const errorLink = onError(({ graphQLErrors, operation, forward }) => {
-    if (graphQLErrors) {
-      for (const err of graphQLErrors) {
+  const errorLink = new ErrorLink(({ error, operation, forward }) => {
+    // Check if this is a GraphQL error with the errors array
+    if (CombinedGraphQLErrors.is(error)) {
+      for (const err of error.errors) {
         if (
           err.message?.includes("Authentication required") ||
           err.message?.includes("permission")
         ) {
           // Try to refresh the token
-          return new (require("@apollo/client").Observable)((observer: any) => {
+          return new Observable((observer) => {
             refreshAccessToken()
               .then((newToken) => {
                 if (newToken) {
