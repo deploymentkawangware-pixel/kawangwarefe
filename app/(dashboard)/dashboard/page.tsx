@@ -13,9 +13,10 @@ import { useQuery } from "@apollo/client/react";
 import { GET_MY_CONTRIBUTIONS } from "@/lib/graphql/queries";
 import { GET_DASHBOARD_STATS } from "@/lib/graphql/admin-queries";
 import { useMyCategoryAdminRoles } from "@/lib/hooks/use-category-admin";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey } from "lucide-react";
+import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -68,6 +69,9 @@ function DashboardContent() {
   // Get category admin roles
   const { roles: categoryAdminRoles, isAnyCategoryAdmin } = useMyCategoryAdminRoles();
 
+  // Check if user has content admin role
+  const { isContentAdmin } = useUserRole();
+
   const contributions = data?.myContributions || [];
 
   // Calculate summary stats
@@ -113,6 +117,16 @@ function DashboardContent() {
                 >
                   <Shield className="h-4 w-4 mr-2" />
                   Admin Panel
+                </Button>
+              )}
+              {(isContentAdmin || isStaff) && (
+                <Button
+                  variant="default"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                  onClick={() => router.push("/admin/content")}
+                >
+                  <Newspaper className="h-4 w-4 mr-2" />
+                  Church Content
                 </Button>
               )}
               <Button

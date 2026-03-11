@@ -89,6 +89,20 @@ interface YoutubeVideo {
   youtubePublishedAt?: string;
 }
 
+interface VideoMutationResponse {
+  success: boolean;
+  message: string;
+  video?: YoutubeVideo;
+}
+
+interface SyncResponse {
+  success: boolean;
+  message: string;
+  videosCreated: number;
+  videosUpdated: number;
+  videosFailed: number;
+}
+
 const CATEGORIES = [
   { value: "sermon", label: "Sermon" },
   { value: "worship", label: "Worship" },
@@ -149,16 +163,16 @@ function YouTubeManagementPageContent() {
   const [syncMaxResults, setSyncMaxResults] = useState(50);
   const [syncCategory, setSyncCategory] = useState("sermon");
 
-  const { data, loading, refetch } = useQuery(GET_ALL_YOUTUBE_VIDEOS, {
+  const { data, loading, refetch } = useQuery<{ youtubeVideos: YoutubeVideo[] }>(GET_ALL_YOUTUBE_VIDEOS, {
     variables: { limit: 1000 },
   });
 
-  const [createVideo, { loading: creating }] = useMutation(CREATE_YOUTUBE_VIDEO);
-  const [updateVideo, { loading: updating }] = useMutation(UPDATE_YOUTUBE_VIDEO);
-  const [deleteVideo, { loading: deleting }] = useMutation(DELETE_YOUTUBE_VIDEO);
-  const [toggleFeatured] = useMutation(TOGGLE_VIDEO_FEATURED);
-  const [syncChannel, { loading: syncingChannel }] = useMutation(SYNC_YOUTUBE_CHANNEL);
-  const [syncPlaylist, { loading: syncingPlaylist }] = useMutation(SYNC_YOUTUBE_PLAYLIST);
+  const [createVideo, { loading: creating }] = useMutation<{ createYoutubeVideo: VideoMutationResponse }>(CREATE_YOUTUBE_VIDEO);
+  const [updateVideo, { loading: updating }] = useMutation<{ updateYoutubeVideo: VideoMutationResponse }>(UPDATE_YOUTUBE_VIDEO);
+  const [deleteVideo, { loading: deleting }] = useMutation<{ deleteYoutubeVideo: VideoMutationResponse }>(DELETE_YOUTUBE_VIDEO);
+  const [toggleFeatured] = useMutation<{ toggleVideoFeatured: VideoMutationResponse }>(TOGGLE_VIDEO_FEATURED);
+  const [syncChannel, { loading: syncingChannel }] = useMutation<{ syncYoutubeChannel: SyncResponse }>(SYNC_YOUTUBE_CHANNEL);
+  const [syncPlaylist, { loading: syncingPlaylist }] = useMutation<{ syncYoutubePlaylist: SyncResponse }>(SYNC_YOUTUBE_PLAYLIST);
 
   const videos: YoutubeVideo[] = data?.youtubeVideos || [];
 
@@ -926,7 +940,7 @@ function YouTubeManagementPageContent() {
 
 export default function YouTubeManagementPage() {
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute requiredAccess="content-admin">
       <YouTubeManagementPageContent />
     </AdminProtectedRoute>
   );

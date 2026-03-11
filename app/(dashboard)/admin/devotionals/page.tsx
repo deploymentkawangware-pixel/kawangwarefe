@@ -67,6 +67,12 @@ interface Devotional {
   updatedAt: string;
 }
 
+interface DevotionalMutationResponse {
+  success: boolean;
+  message: string;
+  devotional?: Devotional;
+}
+
 function DevotionalsManagementPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [publishedFilter, setPublishedFilter] = useState("all");
@@ -101,15 +107,15 @@ function DevotionalsManagementPageContent() {
   const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editImageUrl, setEditImageUrl] = useState("");
 
-  const { data, loading, refetch } = useQuery(GET_ALL_DEVOTIONALS, {
+  const { data, loading, refetch } = useQuery<{ devotionals: Devotional[] }>(GET_ALL_DEVOTIONALS, {
     variables: { limit: 1000 },
   });
 
-  const [createDevotional, { loading: creating }] = useMutation(CREATE_DEVOTIONAL);
-  const [updateDevotional, { loading: updating }] = useMutation(UPDATE_DEVOTIONAL);
-  const [deleteDevotional, { loading: deleting }] = useMutation(DELETE_DEVOTIONAL);
-  const [toggleFeatured] = useMutation(TOGGLE_DEVOTIONAL_FEATURED);
-  const [togglePublished] = useMutation(TOGGLE_DEVOTIONAL_PUBLISHED);
+  const [createDevotional, { loading: creating }] = useMutation<{ createDevotional: DevotionalMutationResponse }>(CREATE_DEVOTIONAL);
+  const [updateDevotional, { loading: updating }] = useMutation<{ updateDevotional: DevotionalMutationResponse }>(UPDATE_DEVOTIONAL);
+  const [deleteDevotional, { loading: deleting }] = useMutation<{ deleteDevotional: DevotionalMutationResponse }>(DELETE_DEVOTIONAL);
+  const [toggleFeatured] = useMutation<{ toggleDevotionalFeatured: DevotionalMutationResponse }>(TOGGLE_DEVOTIONAL_FEATURED);
+  const [togglePublished] = useMutation<{ toggleDevotionalPublished: DevotionalMutationResponse }>(TOGGLE_DEVOTIONAL_PUBLISHED);
 
   const devotionals: Devotional[] = data?.devotionals || [];
 
@@ -901,7 +907,7 @@ function DevotionalsManagementPageContent() {
 
 export default function DevotionalsManagementPage() {
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute requiredAccess="content-admin">
       <DevotionalsManagementPageContent />
     </AdminProtectedRoute>
   );

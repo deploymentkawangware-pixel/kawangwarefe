@@ -62,6 +62,12 @@ interface Announcement {
   updatedAt: string;
 }
 
+interface AnnouncementMutationResponse {
+  success: boolean;
+  message: string;
+  announcement?: Announcement;
+}
+
 function AnnouncementsManagementPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -88,14 +94,14 @@ function AnnouncementsManagementPageContent() {
   const [editIsActive, setEditIsActive] = useState(false);
   const [editPriority, setEditPriority] = useState(0);
 
-  const { data, loading, refetch } = useQuery(GET_ALL_ANNOUNCEMENTS, {
+  const { data, loading, refetch } = useQuery<{ announcements: Announcement[] }>(GET_ALL_ANNOUNCEMENTS, {
     variables: { limit: 1000 },
   });
 
-  const [createAnnouncement, { loading: creating }] = useMutation(CREATE_ANNOUNCEMENT);
-  const [updateAnnouncement, { loading: updating }] = useMutation(UPDATE_ANNOUNCEMENT);
-  const [deleteAnnouncement, { loading: deleting }] = useMutation(DELETE_ANNOUNCEMENT);
-  const [toggleActive] = useMutation(TOGGLE_ANNOUNCEMENT_ACTIVE);
+  const [createAnnouncement, { loading: creating }] = useMutation<{ createAnnouncement: AnnouncementMutationResponse }>(CREATE_ANNOUNCEMENT);
+  const [updateAnnouncement, { loading: updating }] = useMutation<{ updateAnnouncement: AnnouncementMutationResponse }>(UPDATE_ANNOUNCEMENT);
+  const [deleteAnnouncement, { loading: deleting }] = useMutation<{ deleteAnnouncement: AnnouncementMutationResponse }>(DELETE_ANNOUNCEMENT);
+  const [toggleActive] = useMutation<{ toggleAnnouncementActive: AnnouncementMutationResponse }>(TOGGLE_ANNOUNCEMENT_ACTIVE);
 
   const announcements: Announcement[] = data?.announcements || [];
 
@@ -741,7 +747,7 @@ function AnnouncementsManagementPageContent() {
 
 export default function AnnouncementsManagementPage() {
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute requiredAccess="content-admin">
       <AnnouncementsManagementPageContent />
     </AdminProtectedRoute>
   );

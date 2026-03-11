@@ -66,6 +66,12 @@ interface Event {
   updatedAt: string;
 }
 
+interface EventMutationResponse {
+  success: boolean;
+  message: string;
+  event?: Event;
+}
+
 function EventsManagementPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
@@ -100,14 +106,14 @@ function EventsManagementPageContent() {
   const [editIsActive, setEditIsActive] = useState(false);
   const [editImageUrl, setEditImageUrl] = useState("");
 
-  const { data, loading, refetch } = useQuery(GET_ALL_EVENTS, {
+  const { data, loading, refetch } = useQuery<{ events: Event[] }>(GET_ALL_EVENTS, {
     variables: { limit: 1000 },
   });
 
-  const [createEvent, { loading: creating }] = useMutation(CREATE_EVENT);
-  const [updateEvent, { loading: updating }] = useMutation(UPDATE_EVENT);
-  const [deleteEvent, { loading: deleting }] = useMutation(DELETE_EVENT);
-  const [toggleActive] = useMutation(TOGGLE_EVENT_ACTIVE);
+  const [createEvent, { loading: creating }] = useMutation<{ createEvent: EventMutationResponse }>(CREATE_EVENT);
+  const [updateEvent, { loading: updating }] = useMutation<{ updateEvent: EventMutationResponse }>(UPDATE_EVENT);
+  const [deleteEvent, { loading: deleting }] = useMutation<{ deleteEvent: EventMutationResponse }>(DELETE_EVENT);
+  const [toggleActive] = useMutation<{ toggleEventActive: EventMutationResponse }>(TOGGLE_EVENT_ACTIVE);
 
   const events: Event[] = data?.events || [];
 
@@ -896,7 +902,7 @@ function EventsManagementPageContent() {
 
 export default function EventsManagementPage() {
   return (
-    <AdminProtectedRoute>
+    <AdminProtectedRoute requiredAccess="content-admin">
       <EventsManagementPageContent />
     </AdminProtectedRoute>
   );

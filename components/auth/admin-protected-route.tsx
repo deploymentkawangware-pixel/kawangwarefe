@@ -4,6 +4,7 @@
  * Protects admin pages based on user role.
  * - Staff-only pages: Members, Reports, Category Admins management
  * - Category admin pages: Overview, Contributions (filtered)
+ * - Content admin pages: Announcements, Devotionals, Events, YouTube
  */
 
 "use client";
@@ -15,7 +16,7 @@ import { ProtectedRoute } from "./protected-route";
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
-  requiredAccess?: "staff" | "category-admin" | "any-admin";
+  requiredAccess?: "staff" | "category-admin" | "content-admin" | "any-admin";
 }
 
 export function AdminProtectedRoute({
@@ -23,7 +24,7 @@ export function AdminProtectedRoute({
   requiredAccess = "any-admin",
 }: AdminProtectedRouteProps) {
   const router = useRouter();
-  const { isStaff, isCategoryAdmin, canAccessAdmin, loading } = useUserRole();
+  const { isStaff, isCategoryAdmin, isContentAdmin, canAccessAdmin, canAccessContent, loading } = useUserRole();
 
   useEffect(() => {
     if (loading) return;
@@ -38,8 +39,11 @@ export function AdminProtectedRoute({
       case "category-admin":
         hasAccess = isCategoryAdmin || isStaff;
         break;
+      case "content-admin":
+        hasAccess = canAccessContent;
+        break;
       case "any-admin":
-        hasAccess = canAccessAdmin;
+        hasAccess = canAccessAdmin || canAccessContent;
         break;
     }
 
@@ -47,7 +51,7 @@ export function AdminProtectedRoute({
       // Redirect to dashboard if no access
       router.push("/dashboard");
     }
-  }, [isStaff, isCategoryAdmin, canAccessAdmin, loading, requiredAccess, router]);
+  }, [isStaff, isCategoryAdmin, isContentAdmin, canAccessAdmin, canAccessContent, loading, requiredAccess, router]);
 
   // Show loading while checking access
   if (loading) {
@@ -69,8 +73,11 @@ export function AdminProtectedRoute({
     case "category-admin":
       hasAccess = isCategoryAdmin || isStaff;
       break;
+    case "content-admin":
+      hasAccess = canAccessContent;
+      break;
     case "any-admin":
-      hasAccess = canAccessAdmin;
+      hasAccess = canAccessAdmin || canAccessContent;
       break;
   }
 

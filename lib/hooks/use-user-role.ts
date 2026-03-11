@@ -16,6 +16,7 @@ const GET_CURRENT_USER_ROLE = gql`
       isAuthenticated
       isStaff
       isCategoryAdmin
+      isContentAdmin
       adminCategoryIds
       adminCategories {
         id
@@ -38,6 +39,7 @@ interface UserRoleInfo {
   isAuthenticated: boolean;
   isStaff: boolean;
   isCategoryAdmin: boolean;
+  isContentAdmin: boolean;
   adminCategoryIds: string[];
   adminCategories: Category[];
 }
@@ -72,9 +74,13 @@ export function useUserRole() {
     // Role flags
     isStaff: roleInfo?.isStaff ?? false,
     isCategoryAdmin: roleInfo?.isCategoryAdmin ?? false,
+    isContentAdmin: roleInfo?.isContentAdmin ?? false,
 
     // Combined check: can access admin panel
     canAccessAdmin: (roleInfo?.isStaff || roleInfo?.isCategoryAdmin) ?? false,
+
+    // Can access content management
+    canAccessContent: (roleInfo?.isStaff || roleInfo?.isContentAdmin) ?? false,
 
     // Full admin (can see everything)
     isFullAdmin: roleInfo?.isStaff ?? false,
@@ -84,11 +90,16 @@ export function useUserRole() {
     adminCategories: roleInfo?.adminCategories ?? [],
 
     // Helper: check if user can access a specific admin feature
-    canAccessFeature: (feature: "members" | "reports" | "category-admins" | "categories" | "contributions" | "overview" | "c2b-transactions") => {
+    canAccessFeature: (feature: "members" | "reports" | "category-admins" | "categories" | "contributions" | "overview" | "c2b-transactions" | "content") => {
       if (!roleInfo) return false;
 
       // Full staff can access everything
       if (roleInfo.isStaff) return true;
+
+      // Content admins can access content
+      if (roleInfo.isContentAdmin) {
+        return feature === "content";
+      }
 
       // Category admins can only access overview and contributions
       if (roleInfo.isCategoryAdmin) {
