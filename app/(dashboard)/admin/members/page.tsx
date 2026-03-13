@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { GET_MEMBERS_LIST } from "@/lib/graphql/admin-queries";
 import { UPDATE_MEMBER, TOGGLE_MEMBER_STATUS, DELETE_MEMBER } from "@/lib/graphql/member-mutations";
@@ -31,8 +31,12 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+
+const PAGE_SIZE = 100;
 
 interface Member {
   id: string;
@@ -47,7 +51,11 @@ interface Member {
 }
 
 interface MembersData {
-  membersList: Member[];
+  membersList: {
+    items: Member[];
+    total: number;
+    hasMore: boolean;
+  };
 }
 
 interface UpdateMemberData {
@@ -76,18 +84,23 @@ interface DeleteMemberData {
 function MembersPageContent() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState<number>(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ firstName: "", lastName: "", email: "", phoneNumber: "" });
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, statusFilter]);
 
   // Get members with filters
   const { data, loading, error: queryError, refetch } = useQuery<MembersData>(GET_MEMBERS_LIST, {
     variables: {
       search: searchTerm || null,
       isActive: statusFilter === "all" ? null : statusFilter === "active",
-      limit: 100,
-      offset: 0,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
     },
   });
 
@@ -95,7 +108,11 @@ function MembersPageContent() {
   const [toggleStatus] = useMutation<ToggleMemberStatusData>(TOGGLE_MEMBER_STATUS);
   const [deleteMember] = useMutation<DeleteMemberData>(DELETE_MEMBER);
 
-  const members = data?.membersList || [];
+  const members = data?.membersList.items || [];
+  const totalMembers = data?.membersList.total || 0;
+  const hasMore = data?.membersList.hasMore || false;
+  const pageStart = totalMembers === 0 ? 0 : page * PAGE_SIZE + 1;
+  const pageEnd = totalMembers === 0 ? 0 : page * PAGE_SIZE + members.length;
 
   // Calculate stats
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -195,8 +212,8 @@ function MembersPageContent() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{members.length}</div>
-              <p className="text-xs text-muted-foreground">All registered members</p>
+              <div className="text-2xl font-bold">{totalMembers}</div>
+              <p className="text-xs text-muted-foreground">Matching members across all pages</p>
             </CardContent>
           </Card>
           <Card>
@@ -206,7 +223,7 @@ function MembersPageContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{activeMembers}</div>
-              <p className="text-xs text-muted-foreground">Currently active</p>
+              <p className="text-xs text-muted-foreground">Active on this page</p>
             </CardContent>
           </Card>
           <Card>
@@ -216,7 +233,7 @@ function MembersPageContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{inactiveMembers}</div>
-              <p className="text-xs text-muted-foreground">Currently inactive</p>
+              <p className="text-xs text-muted-foreground">Inactive on this page</p>
             </CardContent>
           </Card>
         </div>
@@ -296,7 +313,7 @@ function MembersPageContent() {
           <CardHeader>
             <CardTitle>All Members</CardTitle>
             <CardDescription>
-              {members.length} member{members.length !== 1 ? 's' : ''} found
+              Showing {pageStart}-{pageEnd} of {totalMembers} member{totalMembers === 1 ? '' : 's'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -440,6 +457,31 @@ function MembersPageContent() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {!loading && !queryError && totalMembers > 0 && (
+              <div className="flex flex-col gap-3 border-t pt-4 mt-4 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Page {page + 1} · {members.length} member{members.length === 1 ? "" : "s"} on this page
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 0))}
+                    disabled={page === 0 || loading}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((currentPage) => currentPage + 1)}
+                    disabled={!hasMore || loading}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

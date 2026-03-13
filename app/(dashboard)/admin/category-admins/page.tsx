@@ -77,7 +77,11 @@ interface CategoriesData {
 }
 
 interface MembersData {
-  membersList: Member[];
+  membersList: {
+    items: Member[];
+    total: number;
+    hasMore: boolean;
+  };
 }
 
 interface CategoryAdminsData {
@@ -167,7 +171,7 @@ function CategoryAdminsPageContent() {
     });
 
   const categories = categoriesData?.contributionCategories || [];
-  const members = membersData?.membersList || [];
+  const members = membersData?.membersList.items || [];
   const categoryAdmins = adminsData?.categoryAdmins || [];
 
   const handleAssignAdmin = () => {

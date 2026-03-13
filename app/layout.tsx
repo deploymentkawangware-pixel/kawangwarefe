@@ -127,6 +127,17 @@ export default function RootLayout({
             />
           </AuthProvider>
         </ApolloWrapper>
+        <footer className="w-full py-3 text-center text-xs text-muted-foreground border-t bg-background/95">
+          Powered by{" "}
+          <a
+            href="https://www.allons-ysuite.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:underline"
+          >
+            Allons-y Ministry
+          </a>
+        </footer>
         <Analytics />
       </body>
     </html>

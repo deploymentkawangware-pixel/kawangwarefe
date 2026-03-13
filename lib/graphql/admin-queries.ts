@@ -97,15 +97,19 @@ export const GET_MEMBERS_LIST = gql`
       limit: $limit
       offset: $offset
     ) {
-      id
-      fullName
-      firstName
-      lastName
-      phoneNumber
-      memberNumber
-      email
-      isActive
-      createdAt
+      items {
+        id
+        fullName
+        firstName
+        lastName
+        phoneNumber
+        memberNumber
+        email
+        isActive
+        createdAt
+      }
+      total
+      hasMore
     }
   }
 `;
