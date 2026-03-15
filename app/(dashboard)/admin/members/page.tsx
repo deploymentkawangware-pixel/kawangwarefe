@@ -329,7 +329,101 @@ function MembersPageContent() {
               <div className="text-center py-8 text-muted-foreground">No members found</div>
             )}
             {!loading && !queryError && members.length > 0 && (
-              <div className="overflow-x-auto">
+              <>
+              {/* Mobile card view */}
+              <div className="space-y-3 md:hidden">
+                {members.map((member) => (
+                  <div key={member.id} className="border rounded-lg p-3 space-y-2">
+                    {editingId === member.id ? (
+                      /* Mobile Edit Mode */
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            className="h-10 text-sm"
+                            value={editData.firstName}
+                            onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                            placeholder="First name"
+                          />
+                          <Input
+                            className="h-10 text-sm"
+                            value={editData.lastName}
+                            onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <Input
+                          className="h-10 text-sm font-mono"
+                          value={editData.phoneNumber}
+                          onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })}
+                          placeholder="Phone number"
+                        />
+                        <Input
+                          className="h-10 text-sm"
+                          value={editData.email}
+                          onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                          placeholder="email@example.com"
+                        />
+                        <div className="flex gap-2">
+                          <Button className="flex-1" size="sm" variant="default" onClick={() => handleSaveEdit(member.id)} disabled={updating}>
+                            <Save className="h-4 w-4 mr-1" /> Save
+                          </Button>
+                          <Button className="flex-1" size="sm" variant="outline" onClick={handleCancelEdit}>
+                            <X className="h-4 w-4 mr-1" /> Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Mobile Display Mode */
+                      <>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-medium">{member.fullName}</div>
+                            <div className="text-sm font-mono text-muted-foreground">{member.phoneNumber}</div>
+                          </div>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${member.isActive
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                          }`}>
+                            {member.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{member.memberNumber ? `#${member.memberNumber}` : 'No member #'}</span>
+                          <span>Joined {new Date(member.createdAt).toLocaleDateString('en-GB', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                          })}</span>
+                        </div>
+                        {member.email && (
+                          <div className="text-xs text-muted-foreground">{member.email}</div>
+                        )}
+                        <div className="flex gap-2 pt-1 border-t">
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => handleStartEdit(member)}>
+                            <Pencil className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleToggleStatus(member)}
+                          >
+                            {member.isActive ? (
+                              <><UserX className="h-4 w-4 mr-1 text-yellow-600" /> Deactivate</>
+                            ) : (
+                              <><UserCheck className="h-4 w-4 mr-1 text-green-600" /> Activate</>
+                            )}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDelete(member)}>
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="overflow-x-auto hidden md:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -458,6 +552,7 @@ function MembersPageContent() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
             {!loading && !queryError && totalMembers > 0 && (
               <div className="flex flex-col gap-3 border-t pt-4 mt-4 md:flex-row md:items-center md:justify-between">

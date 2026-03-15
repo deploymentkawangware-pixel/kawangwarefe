@@ -419,17 +419,17 @@ function YouTubeManagementPageContent() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">YouTube Videos</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">YouTube Videos</h1>
             <p className="text-muted-foreground">Manage church YouTube content</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setShowSyncDialog(true)} variant="outline">
+            <Button onClick={() => setShowSyncDialog(true)} variant="outline" size="sm">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Sync from YouTube
+              <span className="hidden sm:inline">Sync from</span> YouTube
             </Button>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} size="sm">
               <Plus className="mr-2 h-4 w-4" />
               Add Video
             </Button>
@@ -524,13 +524,13 @@ function YouTubeManagementPageContent() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredVideos.length} of {videos.length} video(s)
               </p>
 
               {selectedVideos.size > 0 && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={handleBulkToggleFeatured}>
                     <Star className="mr-2 h-4 w-4" />
                     Toggle Featured ({selectedVideos.size})

@@ -165,3 +165,22 @@
 .animate-pulse-slow {
   animation: pulse-slow 3s ease-in-out infinite;
 }
+
+/* Safe area support for notched phones (iPhone X+) in PWA standalone mode */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom nav spacing - add to main content areas that have a bottom nav */
+.has-bottom-nav {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+  .has-bottom-nav {
+    padding-bottom: max(3.5rem, calc(3.5rem + env(safe-area-inset-bottom)));
+  }
+}

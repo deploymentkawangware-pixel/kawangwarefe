@@ -10,6 +10,8 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Race condition: success then failed callback', () => {
+  test.skip(!process.env.BACKEND_URL, 'Requires BACKEND_URL env var (real backend)');
+
   test('Terminal status should not regress', async ({ page, request }) => {
     test.slow();
     const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:8000';

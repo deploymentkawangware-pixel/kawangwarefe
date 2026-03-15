@@ -336,12 +336,12 @@ function EventsManagementPageContent() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Events</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Events</h1>
             <p className="text-muted-foreground">Manage church events and gatherings</p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             New Event
           </Button>
@@ -450,13 +450,13 @@ function EventsManagementPageContent() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredEvents.length} of {events.length} event(s)
               </p>
 
               {selectedEvents.size > 0 && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={handleBulkToggleActive}>
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Toggle Active ({selectedEvents.size})

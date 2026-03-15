@@ -109,13 +109,13 @@ export default function ContributionsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Contributions</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Contributions</h1>
             <p className="text-muted-foreground">View and manage all church contributions</p>
           </div>
           <Link href="/admin/contributions/manual-entry">
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Manual Entry
             </Button>
@@ -290,7 +290,54 @@ export default function ContributionsPage() {
             )}
 
             {!loading && !error && contributions.length > 0 && (
-              <div className="overflow-x-auto">
+              <>
+              {/* Mobile card view */}
+              <div className="space-y-3 md:hidden">
+                {contributions.map((contribution) => (
+                  <div key={contribution.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">
+                        KES {Number.parseFloat(contribution.amount).toLocaleString()}
+                      </span>
+                      <span
+                        className={`inline-block px-2 py-1 text-xs rounded-full ${contribution.status === 'completed'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                          : contribution.status === 'failed'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
+                          }`}
+                      >
+                        {contribution.status}
+                      </span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">{contribution.member.fullName}</span>
+                      {contribution.member.memberNumber && (
+                        <span className="text-xs text-muted-foreground ml-1">#{contribution.member.memberNumber}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{contribution.category.name}</span>
+                      <span>
+                        {contribution.transactionDate
+                          ? new Date(contribution.transactionDate).toLocaleDateString('en-GB', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                          })
+                          : 'Pending'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="font-mono">{contribution.member.phoneNumber}</span>
+                      {contribution.mpesaTransaction?.mpesaReceiptNumber && (
+                        <span className="font-mono">{contribution.mpesaTransaction.mpesaReceiptNumber}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="overflow-x-auto hidden md:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -364,6 +411,7 @@ export default function ContributionsPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

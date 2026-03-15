@@ -82,10 +82,62 @@ interface RefreshTokenPayload {
   message: string;
 }
 
+/**
+ * Read initial auth state synchronously from localStorage.
+ * Returns the user/token if the access token is still valid,
+ * or flags that an async refresh is needed.
+ */
+function getInitialAuthState(): {
+  user: User | null;
+  accessToken: string | null;
+  needsRefresh: boolean;
+} {
+  if (typeof window === "undefined") {
+    return { user: null, accessToken: null, needsRefresh: false };
+  }
+
+  try {
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
+
+    if (!storedToken || !storedUser) {
+      return { user: null, accessToken: null, needsRefresh: false };
+    }
+
+    // Access token still valid — use it immediately (no loading spinner)
+    if (isTokenValid(storedToken)) {
+      setSessionCookie(true);
+      return {
+        user: JSON.parse(storedUser),
+        accessToken: storedToken,
+        needsRefresh: false,
+      };
+    }
+
+    // Access token expired — check if refresh is possible
+    const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (storedRefresh && isTokenValid(storedRefresh)) {
+      return { user: null, accessToken: null, needsRefresh: true };
+    }
+
+    // Both tokens expired — clear stale data
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setSessionCookie(false);
+  } catch {
+    // Ignore storage errors
+  }
+
+  return { user: null, accessToken: null, needsRefresh: false };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const initial = getInitialAuthState();
+  const [user, setUser] = useState<User | null>(initial.user);
+  const [accessToken, setAccessToken] = useState<string | null>(initial.accessToken);
+  // Only show loading spinner when an async refresh is actually needed
+  const [isLoading, setIsLoading] = useState(initial.needsRefresh);
 
   // Typed mutations so `data` is strongly typed (not `unknown`)
   const [verifyOtpMutation] = useMutation<
@@ -103,77 +155,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     { refreshToken: string }
   >(REFRESH_TOKEN);
 
-  // Load user from localStorage on mount — validate token expiry
+  // Only runs when access token expired but refresh token is still valid
   useEffect(() => {
-    const loadUser = async () => {
+    if (!initial.needsRefresh) return;
+
+    const refreshSession = async () => {
       try {
-        const storedToken = localStorage.getItem(TOKEN_KEY);
         const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
         const storedUser = localStorage.getItem(USER_KEY);
 
-        if (!storedToken || !storedUser) {
-          // No session — nothing to restore
+        if (!storedRefresh || !storedUser) {
           setIsLoading(false);
           return;
         }
 
-        // If the access token is still valid, use it directly
-        if (isTokenValid(storedToken)) {
-          setAccessToken(storedToken);
+        const response = await fetch(
+          process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:8000/graphql",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `mutation RefreshToken($refreshToken: String!) {
+                refreshToken(refreshToken: $refreshToken) {
+                  success
+                  accessToken
+                }
+              }`,
+              variables: { refreshToken: storedRefresh },
+            }),
+          }
+        );
+        const data = await response.json();
+        const result = data?.data?.refreshToken;
+
+        if (result?.success && result?.accessToken) {
+          localStorage.setItem(TOKEN_KEY, result.accessToken);
+          setAccessToken(result.accessToken);
           setUser(JSON.parse(storedUser));
           setSessionCookie(true);
-          setIsLoading(false);
-          return;
+        } else {
+          // Refresh failed — clear stale session
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setSessionCookie(false);
         }
-
-        // Access token expired — try to silently refresh using the refresh token
-        if (storedRefresh && isTokenValid(storedRefresh)) {
-          try {
-            const response = await fetch(
-              process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:8000/graphql",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  query: `mutation RefreshToken($refreshToken: String!) {
-                    refreshToken(refreshToken: $refreshToken) {
-                      success
-                      accessToken
-                    }
-                  }`,
-                  variables: { refreshToken: storedRefresh },
-                }),
-              }
-            );
-            const data = await response.json();
-            const result = data?.data?.refreshToken;
-
-            if (result?.success && result?.accessToken) {
-              localStorage.setItem(TOKEN_KEY, result.accessToken);
-              setAccessToken(result.accessToken);
-              setUser(JSON.parse(storedUser));
-              setSessionCookie(true);
-              setIsLoading(false);
-              return;
-            }
-          } catch {
-            // Refresh failed — fall through to clear
-          }
-        }
-
-        // Both tokens expired or refresh failed — clear stale session
+      } catch (error) {
+        console.error("Error refreshing session:", error);
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         setSessionCookie(false);
-      } catch (error) {
-        console.error("Error loading user from storage:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUser();
+    refreshSession();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Login function

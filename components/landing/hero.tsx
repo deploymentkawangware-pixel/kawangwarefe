@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[700px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-teal-50/30 to-emerald-50/30">
+    <section className="relative min-h-[500px] md:min-h-[700px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-teal-50/30 to-emerald-50/30">
       {/* Decorative Background Elements */}
       <div className="absolute top-20 left-10 w-32 h-32 bg-teal-400/20 rounded-full blur-3xl animate-pulse-slow" />
       <div className="absolute top-40 right-20 w-24 h-24 bg-emerald-400/20 rounded-full blur-2xl animate-pulse-slow" style={{ animationDelay: '1s' }} />

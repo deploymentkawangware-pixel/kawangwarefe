@@ -16,7 +16,7 @@ import { useMyCategoryAdminRoles } from "@/lib/hooks/use-category-admin";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper } from "lucide-react";
+import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -109,38 +109,43 @@ function DashboardContent() {
               <h1 className="text-2xl font-bold">My Dashboard</h1>
               <p className="text-sm text-muted-foreground">Welcome, {user?.fullName}</p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
               {isStaff && (
                 <Button
                   variant="default"
+                  size="sm"
                   onClick={() => router.push("/admin")}
                 >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Admin Panel
+                  <Shield className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Admin Panel</span>
                 </Button>
               )}
               {(isContentAdmin || isStaff) && (
                 <Button
                   variant="default"
+                  size="sm"
                   className="bg-indigo-600 hover:bg-indigo-700"
                   onClick={() => router.push("/admin/content")}
                 >
-                  <Newspaper className="h-4 w-4 mr-2" />
-                  Church Content
+                  <Newspaper className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Church Content</span>
                 </Button>
               )}
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => router.push("/contribute")}
               >
-                Make Contribution
+                <Heart className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Make Contribution</span>
               </Button>
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={handleLogout}
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
@@ -148,7 +153,7 @@ function DashboardContent() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
         {/* Summary Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -269,7 +274,46 @@ function DashboardContent() {
             )}
 
             {!loading && !error && contributions.length > 0 && (
-              <div className="overflow-x-auto">
+              <>
+              {/* Mobile card view */}
+              <div className="space-y-3 md:hidden">
+                {contributions.map((contribution) => (
+                  <div key={contribution.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">
+                        KES {Number.parseFloat(contribution.amount).toLocaleString()}
+                      </span>
+                      <span
+                        className={`inline-block px-2 py-1 text-xs rounded-full ${
+                          contribution.status === "completed"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                            : contribution.status === "failed"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                        }`}
+                      >
+                        {contribution.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{contribution.category.name}</span>
+                      <span>
+                        {contribution.transactionDate
+                          ? new Date(contribution.transactionDate).toLocaleDateString()
+                          : "Pending"}
+                      </span>
+                    </div>
+                    {contribution.mpesaTransaction?.mpesaReceiptNumber && (
+                      <div className="text-xs font-mono text-muted-foreground">
+                        Receipt: {contribution.mpesaTransaction.mpesaReceiptNumber}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="overflow-x-auto hidden md:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -313,6 +357,7 @@ function DashboardContent() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

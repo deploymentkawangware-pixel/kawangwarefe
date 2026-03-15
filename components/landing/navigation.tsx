@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Heart, Home, BookOpen, Calendar, LogIn, LayoutDashboard, LogOut, Bell, Video } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth/auth-context";
+import { BottomNav } from "@/components/layouts/bottom-nav";
 import toast from "react-hot-toast";
 
 export function Navigation() {
@@ -39,6 +40,7 @@ export function Navigation() {
   ];
 
   return (
+    <>
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -90,7 +92,7 @@ export function Navigation() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-3"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -107,10 +109,10 @@ export function Navigation() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-muted rounded-md transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted rounded-md transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                   {link.label}
                 </Link>
               );
@@ -121,7 +123,7 @@ export function Navigation() {
                   setIsOpen(false);
                   handleLogout();
                 }}
-                className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-muted rounded-md transition-colors w-full"
+                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-muted rounded-md transition-colors w-full"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
@@ -131,5 +133,8 @@ export function Navigation() {
         )}
       </div>
     </nav>
+    {/* Mobile bottom navigation */}
+    <BottomNav />
+    </>
   );
 }

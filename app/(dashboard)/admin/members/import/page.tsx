@@ -159,7 +159,7 @@ function MemberImportPageContent() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Link href="/admin/members">
@@ -167,13 +167,13 @@ function MemberImportPageContent() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">Import Members</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Import Members</h1>
             </div>
             <p className="text-muted-foreground">
               Upload a CSV or Excel file to import members in bulk
             </p>
           </div>
-          <Button variant="outline" onClick={handleDownloadTemplate}>
+          <Button variant="outline" onClick={handleDownloadTemplate} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Download Template
           </Button>

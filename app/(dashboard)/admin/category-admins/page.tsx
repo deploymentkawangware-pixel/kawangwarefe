@@ -440,7 +440,40 @@ function CategoryAdminsPageContent() {
                         {category.description}
                       </p>
                     )}
-                    <div className="overflow-x-auto">
+                    {/* Mobile card view */}
+                    <div className="space-y-3 md:hidden">
+                      {admins.map((admin) => (
+                        <div key={admin.id} className="border rounded-lg p-3 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-medium">{admin.member.fullName}</div>
+                              <div className="text-sm font-mono text-muted-foreground">{admin.member.phoneNumber}</div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRemoveAdmin(admin.id)}
+                              disabled={removing}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{admin.member.memberNumber ? `#${admin.member.memberNumber}` : 'No member #'}</span>
+                            <span>By {admin.assignedBy?.fullName || "System"}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Assigned {new Date(admin.assignedAt).toLocaleDateString("en-GB", {
+                              day: "2-digit", month: "short", year: "numeric",
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop table view */}
+                    <div className="overflow-x-auto hidden md:block">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b">

@@ -12,6 +12,8 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Live callback flow', () => {
+  test.skip(!process.env.BACKEND_URL, 'Requires BACKEND_URL env var (real backend)');
+
   test('UI waits, callback arrives, payment becomes successful', async ({ page, request }) => {
     test.slow();
 

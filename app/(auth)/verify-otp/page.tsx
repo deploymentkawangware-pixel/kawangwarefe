@@ -156,7 +156,7 @@ function VerifyOtpContent() {
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       disabled={isSubmitting}
-                      className="w-12 h-14 text-center text-2xl font-semibold"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold"
                     />
                   ))}
                 </div>

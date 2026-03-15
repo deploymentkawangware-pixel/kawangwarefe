@@ -38,11 +38,10 @@ test.describe('Contribution Page — Form Validation', () => {
     await page.waitForLoadState('networkidle')
   })
 
-  test('"Review Contribution" button is disabled before entering required fields', async ({ page }) => {
+  test('"Review Contribution" button is present', async ({ page }) => {
+    // Button is always enabled; validation happens on click via handleReviewClick
     const reviewBtn = page.getByRole('button', { name: /review contribution/i })
-    if (await reviewBtn.count() > 0) {
-      await expect(reviewBtn).toBeDisabled()
-    }
+    await expect(reviewBtn).toBeVisible()
   })
 
   test('phone input accepts a valid 9-digit number', async ({ page }) => {

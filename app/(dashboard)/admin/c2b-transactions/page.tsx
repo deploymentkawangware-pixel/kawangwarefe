@@ -296,14 +296,14 @@ export default function C2BTransactionsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">C2B Transactions</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">C2B Transactions</h1>
             <p className="text-muted-foreground">
               M-Pesa Pay Bill payments — review and resolve unmatched transactions
             </p>
           </div>
-          <Button variant="outline" onClick={refetchAll}>
+          <Button variant="outline" onClick={refetchAll} className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -404,7 +404,7 @@ export default function C2BTransactionsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-2 min-w-[180px]">
+              <div className="space-y-2 w-full sm:min-w-[180px] sm:w-auto">
                 <Label htmlFor="status-filter">Status</Label>
                 <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
                   <SelectTrigger id="status-filter">
@@ -463,7 +463,55 @@ export default function C2BTransactionsPage() {
 
             {!loading && !error && transactions.length > 0 && (
               <>
-                <div className="overflow-x-auto">
+                {/* Mobile card view */}
+                <div className="space-y-3 md:hidden">
+                  {transactions.map((tx) => (
+                    <div key={tx.id} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">{fmtAmount(tx.transAmount)}</span>
+                        <span className={statusBadge(tx.status)}>{tx.status}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">
+                          {tx.customerName || <span className="text-muted-foreground italic">Unknown</span>}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-mono">{tx.msisdn}</span>
+                        <span>{fmtDate(tx.transTime)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-mono">{tx.transId}</span>
+                        {tx.billRefNumber && (
+                          <span>Ref: <span className="font-mono">{tx.billRefNumber}</span></span>
+                        )}
+                      </div>
+                      {tx.matchedCategoryCode && (
+                        <div className="text-xs">
+                          <span className="font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                            {tx.matchedCategoryCode}
+                          </span>
+                          {tx.matchMethod && tx.matchMethod !== "manual" && (
+                            <span className="ml-1 text-muted-foreground">({tx.matchMethod})</span>
+                          )}
+                        </div>
+                      )}
+                      {tx.status === "unmatched" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-yellow-700 border-yellow-400 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:bg-yellow-900/30"
+                          onClick={() => setResolvingTx(tx)}
+                        >
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table view */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
@@ -546,7 +594,7 @@ export default function C2BTransactionsPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
                     Showing {page * PAGE_SIZE + 1}–
                     {Math.min((page + 1) * PAGE_SIZE, total)} of {total}

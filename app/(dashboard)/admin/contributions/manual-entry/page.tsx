@@ -360,8 +360,8 @@ function ManualContributionPageContent() {
           </Card>
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <Button type="submit" disabled={submitting}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
               {submitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -376,14 +376,14 @@ function ManualContributionPageContent() {
             </Button>
 
             {success && (
-              <Button type="button" variant="outline" onClick={handleAddAnother}>
+              <Button type="button" variant="outline" onClick={handleAddAnother} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Another
               </Button>
             )}
 
             <Link href="/admin/contributions">
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className="w-full sm:w-auto">
                 View All Contributions
               </Button>
             </Link>

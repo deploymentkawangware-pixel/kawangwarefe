@@ -344,7 +344,7 @@ function DetailsCard({ children }: { children: React.ReactNode }) {
         <CardTitle>Contribution Details</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4">{children}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
       </CardContent>
     </Card>
   );
@@ -425,7 +425,7 @@ function ActionButtons({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         {isPending && (
           <Button onClick={handleCheckStatus} variant="outline" className="flex-1" disabled={checking}>
             <RefreshCw className={`h-4 w-4 mr-2 ${checking ? "animate-spin" : ""}`} />

@@ -16,7 +16,8 @@ test.describe('Login Page — Accessibility & Structure', () => {
   })
 
   test('renders "Member Login" heading', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /member login/i })).toBeVisible()
+    // CardTitle renders as a <div>, not an <h*> — also matches <title> so use first()
+    await expect(page.getByText('Member Login').first()).toBeVisible()
   })
 
   test('renders phone number label and input', async ({ page }) => {
@@ -98,8 +99,7 @@ test.describe('OTP Verification Page', () => {
   test('shows OTP input when phone param is in URL', async ({ page }) => {
     await page.goto('/verify-otp?phone=254797030300')
     await page.waitForLoadState('networkidle')
-    // Either OTP form or redirect, but heading should reflect OTP page
-    const heading = page.getByRole('heading', { name: /verify|otp|code/i })
-    await expect(heading).toBeVisible()
+    // CardTitle renders as <div>, not <h*>; text is "Verify Your Phone"
+    await expect(page.getByText(/verify your phone/i)).toBeVisible()
   })
 })

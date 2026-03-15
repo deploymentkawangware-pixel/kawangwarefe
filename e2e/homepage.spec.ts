@@ -32,11 +32,12 @@ test.describe('Homepage — Navigation', () => {
   })
 
   test('navigation contains "Devotionals" link', async ({ page }) => {
-    await expect(page.getByRole('link', { name: /devotionals/i })).toBeVisible()
+    // Desktop nav links are hidden on mobile; use first() since BottomNav also has links
+    await expect(page.getByRole('link', { name: /devotionals/i }).first()).toBeVisible()
   })
 
   test('navigation contains "Events" link', async ({ page }) => {
-    await expect(page.getByRole('link', { name: /events/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /events/i }).first()).toBeVisible()
   })
 })
 
@@ -53,12 +54,12 @@ test.describe('Homepage — Hero Section', () => {
   })
 
   test('"Give Online" CTA button is visible in the hero', async ({ page }) => {
-    const cta = page.getByRole('link', { name: /give online/i })
+    const cta = page.getByRole('link', { name: /give online/i }).first()
     await expect(cta).toBeVisible()
   })
 
   test('"Give Online" CTA links to /contribute', async ({ page }) => {
-    const cta = page.getByRole('link', { name: /give online/i })
+    const cta = page.getByRole('link', { name: /give online/i }).first()
     await expect(cta).toHaveAttribute('href', '/contribute')
   })
 
@@ -104,13 +105,13 @@ test.describe('Homepage — Footer', () => {
   })
 
   test('footer contains copyright text', async ({ page }) => {
-    const footer = page.locator('footer')
+    const footer = page.locator('footer').first()
     await expect(footer).toBeVisible()
     await expect(footer).toContainText(/seventh-day adventist church kawangware/i)
   })
 
   test('footer contains "Give Online" link', async ({ page }) => {
-    const footer = page.locator('footer')
+    const footer = page.locator('footer').first()
     const giveLink = footer.getByRole('link', { name: /give online/i })
     await expect(giveLink).toBeVisible()
   })

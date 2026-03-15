@@ -27,6 +27,7 @@ import {
   Newspaper,
 } from "lucide-react";
 import { useState } from "react";
+import { AdminBottomNav } from "@/components/layouts/admin-bottom-nav";
 import toast from "react-hot-toast";
 
 interface AdminLayoutProps {
@@ -228,10 +229,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <AdminBottomNav />
     </div>
   );
 }

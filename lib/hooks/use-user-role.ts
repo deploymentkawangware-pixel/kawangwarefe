@@ -55,7 +55,7 @@ export function useUserRole() {
   const { data, loading, error, refetch } = useQuery<UserRoleData>(
     GET_CURRENT_USER_ROLE,
     {
-      fetchPolicy: "cache-and-network",
+      fetchPolicy: "cache-first",
       errorPolicy: "ignore",
     }
   );

@@ -102,7 +102,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <Toaster
-              position="top-right"
+              position="bottom-center"
               toastOptions={{
                 duration: 4000,
                 style: {
@@ -127,7 +127,7 @@ export default function RootLayout({
             />
           </AuthProvider>
         </ApolloWrapper>
-        <footer className="w-full py-3 text-center text-xs text-muted-foreground border-t bg-background/95">
+        <footer className="w-full py-3 pb-16 md:pb-3 text-center text-xs text-muted-foreground border-t bg-background/95">
           Powered by{" "}
           <a
             href="https://www.allons-ysuite.com/"
