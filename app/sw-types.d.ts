@@ -1,12 +1,5 @@
-/// <reference no-default-lib="true"/>
-/// <reference lib="esnext"/>
-/// <reference lib="webworker"/>
-/// <reference lib="webworker.iterable"/>
-
-// Re-declare the global scope so TypeScript resolves the SW-specific
-// globals (skipWaiting, addEventListener("message"), etc.) correctly.
-declare let self: ServiceWorkerGlobalScope;
-
-// Serwist injects this precache manifest variable at build time.
-declare const __SW_MANIFEST: (string | { url: string; revision: string | null })[];
+// Intentionally left minimal to avoid polluting app-wide DOM typings.
+// Service-worker specific libs are declared locally in app/sw.ts via
+// triple-slash references.
+export {};
 

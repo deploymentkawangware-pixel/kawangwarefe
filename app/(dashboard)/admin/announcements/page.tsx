@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { GET_ALL_ANNOUNCEMENTS } from "@/lib/graphql/announcement-queries";
 import {
   CREATE_ANNOUNCEMENT,
@@ -69,6 +70,7 @@ interface AnnouncementMutationResponse {
 }
 
 function AnnouncementsManagementPageContent() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedAnnouncements, setSelectedAnnouncements] = useState<Set<string>>(new Set());
@@ -214,7 +216,13 @@ function AnnouncementsManagementPageContent() {
   };
 
   const handleDelete = async (announcementId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Announcement',
+      description: `Are you sure you want to delete "${title}"?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
 
     clearMessages();
 
@@ -293,7 +301,14 @@ function AnnouncementsManagementPageContent() {
 
   const handleBulkDelete = async () => {
     if (selectedAnnouncements.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedAnnouncements.size} announcement(s)?`)) return;
+
+    const confirmed = await confirm({
+      title: 'Delete Announcements',
+      description: `Are you sure you want to delete ${selectedAnnouncements.size} announcement(s)? This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
 
     clearMessages();
 
@@ -740,6 +755,7 @@ function AnnouncementsManagementPageContent() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <ConfirmDialog />
       </div>
     </AdminLayout>
   );

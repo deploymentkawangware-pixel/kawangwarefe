@@ -31,6 +31,12 @@ import { Serwist } from "serwist";
 
 declare const self: ServiceWorkerGlobalScope;
 
+declare global {
+  interface ServiceWorkerGlobalScope {
+    __SW_MANIFEST: Array<string | { url: string; revision: string | null }>;
+  }
+}
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,  // injected by @serwist/next at build time
   precacheOptions: {

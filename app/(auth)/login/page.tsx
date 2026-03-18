@@ -88,9 +88,10 @@ function LoginContent() {
     }
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
     // Only allow digits
-    let value = e.currentTarget.value.replaceAll(/\D/g, "");
+    const target = e.currentTarget as unknown as { value: string };
+    let value = (target.value || "").replaceAll(/\D/g, "");
 
     // If user starts with 0, remove it (they should just type 797030300)
     if (value.startsWith("0")) {

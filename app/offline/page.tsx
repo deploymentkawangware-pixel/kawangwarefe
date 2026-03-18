@@ -50,10 +50,9 @@ export default function OfflinePage() {
         </p>
 
         {/* Reload button — client-side refresh */}
-        <button
+        <a
           id="offline-reload-btn"
-          type="button"
-          onClick={() => globalThis.location.reload()}
+          href="/"
           className="group inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-transparent"
           style={{
             background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
@@ -62,7 +61,7 @@ export default function OfflinePage() {
         >
           <RefreshCw className="h-4 w-4 transition-transform group-hover:rotate-180 duration-500" aria-hidden="true" />
           Try Again
-        </button>
+        </a>
 
         <p className="text-xs text-slate-500">
           Pages you&apos;ve visited recently may still be available.

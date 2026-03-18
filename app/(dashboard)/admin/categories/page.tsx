@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import {
   GET_ALL_CATEGORIES,
   CREATE_CATEGORY,
@@ -70,6 +71,7 @@ interface DeleteCategoryData {
 }
 
 function CategoryManagementPageContent() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
@@ -198,7 +200,14 @@ function CategoryManagementPageContent() {
   const handleDelete = async (category: Category) => {
     clearMessages();
 
-    if (!confirm(`Are you sure you want to delete '${category.name}'? This cannot be undone.`)) {
+    const confirmed = await confirm({
+      title: 'Delete Category',
+      description: `Are you sure you want to delete '${category.name}'? This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -483,6 +492,7 @@ function CategoryManagementPageContent() {
           </CardContent>
         </Card>
       </div>
+      <ConfirmDialog />
     </AdminLayout>
   );
 }
