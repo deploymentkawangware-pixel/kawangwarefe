@@ -36,8 +36,18 @@ export default function Home() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Kawangware, Nairobi</li>
                 <li>Kenya</li>
-                <li>Email: info@sdakawangware.org</li>
+                <li>Location: Gitanga Road, PQ72+V98.</li>
+                <li>Email: sdachurchkawangware@gmail.com</li>
               </ul>
+              <div className="mt-3 overflow-hidden rounded-md border">
+                <iframe
+                  title="Church location map"
+                  src="https://www.google.com/maps?q=PQ72%2BV98&output=embed"
+                  className="h-40 w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
