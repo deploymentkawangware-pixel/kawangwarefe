@@ -32,6 +32,24 @@ interface PurposesData {
   departmentPurposes: Purpose[];
 }
 
+interface DepartmentPurposeResponse {
+  success: boolean;
+  message: string;
+  purpose?: Purpose | null;
+}
+
+interface CreatePurposeData {
+  createDepartmentPurpose: DepartmentPurposeResponse;
+}
+
+interface UpdatePurposeData {
+  updateDepartmentPurpose: DepartmentPurposeResponse;
+}
+
+interface DeletePurposeData {
+  deleteDepartmentPurpose: Omit<DepartmentPurposeResponse, 'purpose'>;
+}
+
 export default function DepartmentPurposesPage() {
   const params = useParams<{ id: string }>();
   const categoryId = params?.id;
@@ -50,9 +68,9 @@ export default function DepartmentPurposesPage() {
 
   const purposes = useMemo(() => data?.departmentPurposes ?? [], [data]);
 
-  const [createPurpose, { loading: creating }] = useMutation(CREATE_DEPARTMENT_PURPOSE);
-  const [updatePurpose] = useMutation(UPDATE_DEPARTMENT_PURPOSE);
-  const [deletePurpose, { loading: deleting }] = useMutation(DELETE_DEPARTMENT_PURPOSE);
+  const [createPurpose, { loading: creating }] = useMutation<CreatePurposeData>(CREATE_DEPARTMENT_PURPOSE);
+  const [updatePurpose] = useMutation<UpdatePurposeData>(UPDATE_DEPARTMENT_PURPOSE);
+  const [deletePurpose, { loading: deleting }] = useMutation<DeletePurposeData>(DELETE_DEPARTMENT_PURPOSE);
 
   const clearMessages = () => {
     setSuccess("");

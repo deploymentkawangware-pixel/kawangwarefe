@@ -26,6 +26,24 @@ interface GetGroupsData {
   groupsList: GroupItem[];
 }
 
+interface GroupResponse {
+  success: boolean;
+  message: string;
+  group?: GroupItem | null;
+}
+
+interface CreateGroupData {
+  createGroup: GroupResponse;
+}
+
+interface UpdateGroupData {
+  updateGroup: GroupResponse;
+}
+
+interface DeleteGroupData {
+  deleteGroup: Omit<GroupResponse, 'group'>;
+}
+
 export default function GroupsManagementPage() {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -36,9 +54,9 @@ export default function GroupsManagementPage() {
   const { data, loading, refetch } = useQuery<GetGroupsData>(GET_GROUPS_LIST);
   const groups = useMemo(() => data?.groupsList ?? [], [data]);
 
-  const [createGroup, { loading: creating }] = useMutation(CREATE_GROUP);
-  const [updateGroup, { loading: updating }] = useMutation(UPDATE_GROUP);
-  const [deleteGroup, { loading: deleting }] = useMutation(DELETE_GROUP);
+  const [createGroup, { loading: creating }] = useMutation<CreateGroupData>(CREATE_GROUP);
+  const [updateGroup, { loading: updating }] = useMutation<UpdateGroupData>(UPDATE_GROUP);
+  const [deleteGroup, { loading: deleting }] = useMutation<DeleteGroupData>(DELETE_GROUP);
 
   const clearMessages = () => {
     setSuccess("");
