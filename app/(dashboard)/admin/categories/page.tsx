@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AdminLayout } from "@/components/layouts/admin-layout";
@@ -43,6 +44,8 @@ interface Category {
   code: string;
   description: string;
   isActive: boolean;
+  routingMode?: "TOP_LEVEL" | "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE" | "OPTIONAL_DETAILS";
+  fallbackIfNoGroup?: "TOP_LEVEL" | "REJECT";
 }
 
 interface GetCategoriesData {
@@ -83,11 +86,15 @@ function CategoryManagementPageContent() {
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newRoutingMode, setNewRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
+  const [newFallbackIfNoGroup, setNewFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
 
   // Edit form state
   const [editName, setEditName] = useState("");
   const [editCode, setEditCode] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editRoutingMode, setEditRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
+  const [editFallbackIfNoGroup, setEditFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
 
   const { data, loading, refetch } = useQuery<GetCategoriesData>(GET_ALL_CATEGORIES);
   const categories = data?.contributionCategories || [];
@@ -99,6 +106,13 @@ function CategoryManagementPageContent() {
   const clearMessages = () => {
     setSuccess("");
     setError("");
+  };
+
+  const getErrorMessage = (err: unknown, fallback: string) => {
+    if (err instanceof Error && err.message) {
+      return err.message;
+    }
+    return fallback;
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -116,6 +130,8 @@ function CategoryManagementPageContent() {
           name: newName.trim(),
           code: newCode.trim().toUpperCase(),
           description: newDescription.trim(),
+          routingMode: newRoutingMode,
+          fallbackIfNoGroup: newRoutingMode === "AUTO_MEMBER_GROUP" ? newFallbackIfNoGroup : "TOP_LEVEL",
         },
       });
 
@@ -124,13 +140,15 @@ function CategoryManagementPageContent() {
         setNewName("");
         setNewCode("");
         setNewDescription("");
+        setNewRoutingMode("REQUIRES_PURPOSE");
+        setNewFallbackIfNoGroup("TOP_LEVEL");
         setShowCreateForm(false);
         refetch();
       } else {
         setError(data?.createCategory?.message || "Failed to create department");
       }
-    } catch (err: any) {
-      setError(err.message || "Error creating department");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Error creating department"));
     }
   };
 
@@ -139,6 +157,8 @@ function CategoryManagementPageContent() {
     setEditName(category.name);
     setEditCode(category.code);
     setEditDescription(category.description);
+    setEditRoutingMode(category.routingMode === "AUTO_MEMBER_GROUP" ? "AUTO_MEMBER_GROUP" : "REQUIRES_PURPOSE");
+    setEditFallbackIfNoGroup(category.fallbackIfNoGroup === "REJECT" ? "REJECT" : "TOP_LEVEL");
     clearMessages();
   };
 
@@ -162,6 +182,8 @@ function CategoryManagementPageContent() {
           name: editName.trim(),
           code: editCode.trim().toUpperCase(),
           description: editDescription.trim(),
+          routingMode: editRoutingMode,
+          fallbackIfNoGroup: editRoutingMode === "AUTO_MEMBER_GROUP" ? editFallbackIfNoGroup : "TOP_LEVEL",
         },
       });
 
@@ -172,8 +194,8 @@ function CategoryManagementPageContent() {
       } else {
         setError(data?.updateCategory?.message || "Failed to update department");
       }
-    } catch (err: any) {
-      setError(err.message || "Error updating department");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Error updating department"));
     }
   };
 
@@ -194,8 +216,8 @@ function CategoryManagementPageContent() {
       } else {
         setError(data?.updateCategory?.message || "Failed to update department");
       }
-    } catch (err: any) {
-      setError(err.message || "Error updating department");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Error updating department"));
     }
   };
 
@@ -224,8 +246,8 @@ function CategoryManagementPageContent() {
       } else {
         setError(data?.deleteCategory?.message || "Failed to delete department");
       }
-    } catch (err: any) {
-      setError(err.message || "Error deleting department");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Error deleting department"));
     }
   };
 
@@ -349,6 +371,34 @@ function CategoryManagementPageContent() {
                     rows={2}
                   />
                 </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="routingMode">Department Type *</Label>
+                    <Select value={newRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => setNewRoutingMode(value)}>
+                      <SelectTrigger id="routingMode">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="REQUIRES_PURPOSE">Requires Purpose</SelectItem>
+                        <SelectItem value="AUTO_MEMBER_GROUP">Auto-match Member Group</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newRoutingMode === "AUTO_MEMBER_GROUP" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fallbackIfNoGroup">If member has no group</Label>
+                      <Select value={newFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setNewFallbackIfNoGroup(value)}>
+                        <SelectTrigger id="fallbackIfNoGroup">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
+                          <SelectItem value="REJECT">Reject Contribution</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={creating}>
                     {creating ? "Creating..." : "Create Department"}
@@ -415,6 +465,34 @@ function CategoryManagementPageContent() {
                             rows={2}
                           />
                         </div>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Department Type</Label>
+                            <Select value={editRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => setEditRoutingMode(value)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="REQUIRES_PURPOSE">Requires Purpose</SelectItem>
+                                <SelectItem value="AUTO_MEMBER_GROUP">Auto-match Member Group</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {editRoutingMode === "AUTO_MEMBER_GROUP" && (
+                            <div>
+                              <Label className="text-xs">If member has no group</Label>
+                              <Select value={editFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setEditFallbackIfNoGroup(value)}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
+                                  <SelectItem value="REJECT">Reject Contribution</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex gap-2">
                           <Button
                             size="sm"
@@ -444,13 +522,21 @@ function CategoryManagementPageContent() {
                             ) : (
                               <Badge variant="secondary" className="text-xs">Inactive</Badge>
                             )}
+                            {category.routingMode === "REQUIRES_PURPOSE" && (
+                              <Badge variant="outline" className="text-xs">Requires Purpose</Badge>
+                            )}
+                            {category.routingMode === "AUTO_MEMBER_GROUP" && (
+                              <Badge variant="outline" className="text-xs">Auto Group Match</Badge>
+                            )}
                           </div>
+                          {category.routingMode === "REQUIRES_PURPOSE" && (
                             <Link href={`/admin/categories/${category.id}/purposes`}>
                               <Button variant="outline" size="sm">
                                 <ListChecks className="h-4 w-4 mr-1" />
                                 Purposes
                               </Button>
                             </Link>
+                          )}
                           {category.description && (
                             <p className="text-sm text-muted-foreground">{category.description}</p>
                           )}

@@ -1,8 +1,20 @@
 import { gql } from '@apollo/client';
 
 export const CREATE_CATEGORY = gql`
-  mutation CreateCategory($name: String!, $code: String!, $description: String) {
-    createCategory(name: $name, code: $code, description: $description) {
+  mutation CreateCategory(
+    $name: String!
+    $code: String!
+    $description: String
+    $routingMode: String
+    $fallbackIfNoGroup: String
+  ) {
+    createCategory(
+      name: $name
+      code: $code
+      description: $description
+      routingMode: $routingMode
+      fallbackIfNoGroup: $fallbackIfNoGroup
+    ) {
       success
       message
       category {
@@ -11,14 +23,32 @@ export const CREATE_CATEGORY = gql`
         code
         description
         isActive
+        routingMode
+        fallbackIfNoGroup
       }
     }
   }
 `;
 
 export const UPDATE_CATEGORY = gql`
-  mutation UpdateCategory($categoryId: ID!, $name: String, $code: String, $description: String, $isActive: Boolean) {
-    updateCategory(categoryId: $categoryId, name: $name, code: $code, description: $description, isActive: $isActive) {
+  mutation UpdateCategory(
+    $categoryId: ID!
+    $name: String
+    $code: String
+    $description: String
+    $isActive: Boolean
+    $routingMode: String
+    $fallbackIfNoGroup: String
+  ) {
+    updateCategory(
+      categoryId: $categoryId
+      name: $name
+      code: $code
+      description: $description
+      isActive: $isActive
+      routingMode: $routingMode
+      fallbackIfNoGroup: $fallbackIfNoGroup
+    ) {
       success
       message
       category {
@@ -27,6 +57,8 @@ export const UPDATE_CATEGORY = gql`
         code
         description
         isActive
+        routingMode
+        fallbackIfNoGroup
       }
     }
   }
@@ -49,6 +81,8 @@ export const GET_ALL_CATEGORIES = gql`
       code
       description
       isActive
+      routingMode
+      fallbackIfNoGroup
     }
   }
 `;
