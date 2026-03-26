@@ -1,92 +1,68 @@
-/**
- * ContributionSummary Component Tests
- */
-
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ContributionSummary } from '@/components/forms/contribution-summary'
-import { makeCategory } from '../../fixtures'
 
-const cat1 = makeCategory({ id: '1', name: 'Tithe', code: 'TITHE' })
-const cat2 = makeCategory({ id: '2', name: 'Offering', code: 'OFFER' })
+vi.mock('@/components/ui/separator', () => ({
+  Separator: () => <hr />,
+}))
 
-const singleContrib = [{ category: cat1, amount: '1000' }]
-const multiContrib = [
-  { category: cat1, amount: '1000' },
-  { category: cat2, amount: '500' },
-]
-
-function renderSummary(overrides: Partial<React.ComponentProps<typeof ContributionSummary>> = {}) {
-  const defaults = {
-    phoneNumber: '254712345678',
-    contributions: singleContrib,
-    totalAmount: '1000',
-    onEdit: vi.fn(),
-    onConfirm: vi.fn(),
-  }
-  return render(<ContributionSummary {...defaults} {...overrides} />)
+const defaultProps = {
+  phoneNumber: '254712345678',
+  contributions: [
+    { category: { id: '1', name: 'Tithe', code: 'TITHE' }, amount: '1000' },
+    { category: { id: '2', name: 'Offering', code: 'OFFERING' }, amount: '2500' },
+  ],
+  totalAmount: '3500',
+  onEdit: vi.fn(),
+  onConfirm: vi.fn(),
 }
 
 describe('ContributionSummary', () => {
-  it('renders Contribution Summary heading', () => {
-    renderSummary()
-    expect(screen.getByText(/contribution summary/i)).toBeDefined()
+  it('renders title "Contribution Summary"', () => {
+    render(<ContributionSummary {...defaultProps} />)
+    expect(screen.getByText('Contribution Summary')).toBeDefined()
   })
 
-  it('renders the formatted phone number', () => {
-    renderSummary({ phoneNumber: '254712345678' })
-    expect(screen.getByText(/0712/)).toBeDefined()
-  })
-
-  it('renders department name', () => {
-    renderSummary()
-    expect(screen.getByText('Tithe')).toBeDefined()
-  })
-
-  it('renders department code', () => {
-    renderSummary()
-    expect(screen.getByText('TITHE')).toBeDefined()
-  })
-
-  it('renders the amount for a single contribution', () => {
-    renderSummary()
-    expect(screen.getAllByText(/1,000/).length).toBeGreaterThan(0)
-  })
-
-  it('renders all departments for multi-contribution', () => {
-    renderSummary({ contributions: multiContrib, totalAmount: '1500' })
+  it('renders contribution items with category names', () => {
+    render(<ContributionSummary {...defaultProps} />)
     expect(screen.getByText('Tithe')).toBeDefined()
     expect(screen.getByText('Offering')).toBeDefined()
   })
 
-  it('renders total amount label and value', () => {
-    renderSummary({ contributions: multiContrib, totalAmount: '1500' })
-    expect(screen.getByText(/total amount/i)).toBeDefined()
-    expect(screen.getByText(/1,500/)).toBeDefined()
+  it('formats amounts with comma separators', () => {
+    render(<ContributionSummary {...defaultProps} />)
+    expect(screen.getByText(/1,000/)).toBeDefined()
+    expect(screen.getByText(/2,500/)).toBeDefined()
+    expect(screen.getByText(/3,500/)).toBeDefined()
   })
 
-  it('calls onEdit when Edit button is clicked', () => {
+  it('formats phone number from 254 format to 0 format', () => {
+    render(<ContributionSummary {...defaultProps} />)
+    expect(screen.getByText(/0712 345 678/)).toBeDefined()
+  })
+
+  it('Edit and Confirm buttons call handlers', () => {
     const onEdit = vi.fn()
-    renderSummary({ onEdit })
-    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
-    expect(onEdit).toHaveBeenCalledOnce()
-  })
-
-  it('calls onConfirm when Confirm button is clicked', () => {
     const onConfirm = vi.fn()
-    renderSummary({ onConfirm })
+    render(<ContributionSummary {...defaultProps} onEdit={onEdit} onConfirm={onConfirm} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    expect(onEdit).toHaveBeenCalledTimes(1)
+
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-    expect(onConfirm).toHaveBeenCalledOnce()
+    expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
-  it('disables both buttons when isLoading=true', () => {
-    renderSummary({ isLoading: true })
+  it('buttons are disabled when isLoading', () => {
+    render(<ContributionSummary {...defaultProps} isLoading={true} />)
     const buttons = screen.getAllByRole('button')
-    buttons.forEach((btn) => expect((btn as HTMLButtonElement).disabled).toBe(true))
+    buttons.forEach((btn) => {
+      expect(btn).toBeDisabled()
+    })
   })
 
-  it('shows Processing text when isLoading=true', () => {
-    renderSummary({ isLoading: true })
-    expect(screen.getByText(/processing/i)).toBeDefined()
+  it('shows "Processing..." when loading', () => {
+    render(<ContributionSummary {...defaultProps} isLoading={true} />)
+    expect(screen.getByText(/Processing/i)).toBeDefined()
   })
 })

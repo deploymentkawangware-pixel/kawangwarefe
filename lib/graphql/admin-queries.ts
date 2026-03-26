@@ -107,6 +107,11 @@ export const GET_MEMBERS_LIST = gql`
         email
         isActive
         createdAt
+        roles
+        groups {
+          id
+          name
+        }
       }
       total
       hasMore
