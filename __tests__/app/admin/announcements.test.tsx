@@ -3,7 +3,45 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
+  useQuery: vi.fn().mockImplementation(() => ({
+    data: {
+      announcements: [
+        {
+          id: 'a1',
+          title: 'Church Renovation Update',
+          content: 'The renovation of the main sanctuary is on track',
+          publishDate: '2025-03-15T00:00:00Z',
+          isActive: true,
+          priority: 2,
+          createdAt: '2025-03-10T00:00:00Z',
+          updatedAt: '2025-03-10T00:00:00Z',
+        },
+        {
+          id: 'a2',
+          title: 'Bible Study Schedule',
+          content: 'New bible study sessions start next week on Wednesday evenings',
+          publishDate: '2025-03-01T00:00:00Z',
+          isActive: true,
+          priority: 0,
+          createdAt: '2025-02-28T00:00:00Z',
+          updatedAt: '2025-02-28T00:00:00Z',
+        },
+        {
+          id: 'a3',
+          title: 'Old Announcement',
+          content: 'This announcement is no longer active',
+          publishDate: '2025-01-01T00:00:00Z',
+          isActive: false,
+          priority: 0,
+          createdAt: '2025-01-01T00:00:00Z',
+          updatedAt: '2025-01-01T00:00:00Z',
+        },
+      ],
+    },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 
@@ -59,5 +97,36 @@ describe('AnnouncementsManagementPage', () => {
   it('renders the heading', () => {
     render(<AnnouncementsManagementPage />)
     expect(screen.getByText('Announcements')).toBeInTheDocument()
+  })
+
+  it('renders statistics cards', () => {
+    render(<AnnouncementsManagementPage />)
+    expect(screen.getByText('Total')).toBeInTheDocument()
+    expect(screen.getByText('High Priority')).toBeInTheDocument()
+  })
+
+  it('renders announcement titles', () => {
+    render(<AnnouncementsManagementPage />)
+    expect(screen.getByText('Church Renovation Update')).toBeInTheDocument()
+    expect(screen.getByText('Bible Study Schedule')).toBeInTheDocument()
+    expect(screen.getByText('Old Announcement')).toBeInTheDocument()
+  })
+
+  it('renders New Announcement button', () => {
+    render(<AnnouncementsManagementPage />)
+    expect(screen.getByRole('button', { name: /New Announcement/i })).toBeInTheDocument()
+  })
+
+  it('shows active and inactive badges', () => {
+    render(<AnnouncementsManagementPage />)
+    const activeBadges = screen.getAllByText('Active')
+    expect(activeBadges.length).toBeGreaterThanOrEqual(2)
+    const inactiveBadges = screen.getAllByText('Inactive')
+    expect(inactiveBadges.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders priority badge for high priority announcement', () => {
+    render(<AnnouncementsManagementPage />)
+    expect(screen.getByText('Priority 2')).toBeInTheDocument()
   })
 })

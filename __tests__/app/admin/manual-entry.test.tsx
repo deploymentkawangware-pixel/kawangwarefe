@@ -3,7 +3,18 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
+  useQuery: vi.fn().mockImplementation(() => ({
+    data: {
+      contributionCategories: [
+        { id: '1', name: 'Tithe', code: 'TITHE' },
+        { id: '2', name: 'Offering', code: 'OFFER' },
+        { id: '3', name: 'Building Fund', code: 'BUILD' },
+      ],
+    },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 
@@ -48,5 +59,32 @@ describe('ManualEntryPage', () => {
   it('renders the heading', () => {
     render(<ManualEntryPage />)
     expect(screen.getByText('Manual Contribution Entry')).toBeInTheDocument()
+  })
+
+  it('renders the Member Information card', () => {
+    render(<ManualEntryPage />)
+    expect(screen.getByText('Member Information')).toBeInTheDocument()
+    expect(screen.getByText('Enter phone number to identify the contributor')).toBeInTheDocument()
+  })
+
+  it('renders the Contribution Details card', () => {
+    render(<ManualEntryPage />)
+    expect(screen.getByText('Contribution Details')).toBeInTheDocument()
+  })
+
+  it('renders the Save Contribution button', () => {
+    render(<ManualEntryPage />)
+    expect(screen.getByRole('button', { name: /Save Contribution/i })).toBeInTheDocument()
+  })
+
+  it('renders phone number input and search button', () => {
+    render(<ManualEntryPage />)
+    expect(screen.getByLabelText('Phone Number')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Search/i })).toBeInTheDocument()
+  })
+
+  it('renders View All Contributions link', () => {
+    render(<ManualEntryPage />)
+    expect(screen.getByText('View All Contributions')).toBeInTheDocument()
   })
 })

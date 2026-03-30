@@ -54,4 +54,26 @@ describe('ImportMembersPage', () => {
     render(<ImportMembersPage />)
     expect(screen.getByText('Import Members')).toBeInTheDocument()
   })
+
+  it('renders the instructions section', () => {
+    render(<ImportMembersPage />)
+    expect(screen.getByText('Instructions')).toBeInTheDocument()
+    expect(screen.getByText(/Download the CSV template/)).toBeInTheDocument()
+  })
+
+  it('renders Download Template button', () => {
+    render(<ImportMembersPage />)
+    expect(screen.getByRole('button', { name: /Download Template/i })).toBeInTheDocument()
+  })
+
+  it('renders the Upload File section', () => {
+    render(<ImportMembersPage />)
+    expect(screen.getByText('Upload File')).toBeInTheDocument()
+    expect(screen.getByText('Select a CSV or Excel file containing member data')).toBeInTheDocument()
+  })
+
+  it('renders the file upload component', () => {
+    render(<ImportMembersPage />)
+    expect(screen.getByTestId('file-upload')).toBeInTheDocument()
+  })
 })

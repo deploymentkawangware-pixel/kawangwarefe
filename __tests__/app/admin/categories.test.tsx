@@ -3,7 +3,18 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
+  useQuery: vi.fn().mockImplementation(() => ({
+    data: {
+      contributionCategories: [
+        { id: '1', name: 'Tithe', code: 'TITHE', description: 'Monthly tithe contributions', isActive: true, routingMode: 'REQUIRES_PURPOSE', fallbackIfNoGroup: 'TOP_LEVEL' },
+        { id: '2', name: 'Building Fund', code: 'BUILD', description: 'Church building project', isActive: true, routingMode: 'AUTO_MEMBER_GROUP', fallbackIfNoGroup: 'TOP_LEVEL' },
+        { id: '3', name: 'Missions', code: 'MISSIONS', description: '', isActive: false, routingMode: 'REQUIRES_PURPOSE', fallbackIfNoGroup: 'TOP_LEVEL' },
+      ],
+    },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 
@@ -63,8 +74,37 @@ describe('CategoryManagementPage', () => {
     expect(screen.getByText('All Departments')).toBeInTheDocument()
   })
 
-  it('shows empty state when no departments', () => {
+  it('renders category names and codes', () => {
     render(<CategoryManagementPage />)
-    expect(screen.getByText('No departments found. Create one to get started.')).toBeInTheDocument()
+    expect(screen.getByText('Tithe')).toBeInTheDocument()
+    expect(screen.getByText('TITHE')).toBeInTheDocument()
+    expect(screen.getByText('Building Fund')).toBeInTheDocument()
+    expect(screen.getByText('BUILD')).toBeInTheDocument()
+    expect(screen.getByText('Missions')).toBeInTheDocument()
+  })
+
+  it('shows statistics for total, active, and inactive departments', () => {
+    render(<CategoryManagementPage />)
+    expect(screen.getByText('Total Departments')).toBeInTheDocument()
+  })
+
+  it('shows Add Department button', () => {
+    render(<CategoryManagementPage />)
+    expect(screen.getByRole('button', { name: /Add Department/i })).toBeInTheDocument()
+  })
+
+  it('renders edit and delete buttons for each category', () => {
+    render(<CategoryManagementPage />)
+    const editButtons = screen.getAllByRole('button', { name: /Edit/i })
+    expect(editButtons.length).toBe(3)
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(deleteButtons.length).toBe(3)
+  })
+
+  it('shows routing mode badges', () => {
+    render(<CategoryManagementPage />)
+    const purposeBadges = screen.getAllByText('Requires Purpose')
+    expect(purposeBadges.length).toBeGreaterThan(0)
+    expect(screen.getByText('Auto Group Match')).toBeInTheDocument()
   })
 })

@@ -3,7 +3,39 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
+  useQuery: vi.fn().mockImplementation(() => ({
+    data: {
+      contributionCategories: [
+        { id: '1', name: 'Tithe', code: 'TITHE' },
+        { id: '2', name: 'Offering', code: 'OFFER' },
+      ],
+      departmentRoutingReport: {
+        summary: {
+          totalCompletedAmount: '500000',
+          totalCompletedCount: 120,
+          guestTopLevelAmount: '50000',
+          guestTopLevelCount: 15,
+          memberRoutedAmount: '300000',
+          memberRoutedCount: 80,
+          memberTopLevelAmount: '150000',
+          memberTopLevelCount: 25,
+        },
+        byDepartment: [
+          { departmentId: '1', departmentName: 'Tithe', departmentCode: 'TITHE', totalAmount: '300000', totalCount: 80 },
+          { departmentId: '2', departmentName: 'Offering', departmentCode: 'OFFER', totalAmount: '200000', totalCount: 40 },
+        ],
+        byDepartmentPurpose: [
+          { departmentId: '1', departmentName: 'Tithe', departmentCode: 'TITHE', purposeId: 'p1', purposeName: 'Camp Meeting', purposeCode: 'CAMP', totalAmount: '100000', totalCount: 20 },
+        ],
+        byDepartmentGroup: [
+          { departmentId: '1', departmentName: 'Tithe', departmentCode: 'TITHE', groupId: 'g1', groupName: 'Youth', isTopLevel: false, totalAmount: '80000', totalCount: 15 },
+        ],
+      },
+    },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 
@@ -48,5 +80,36 @@ describe('ReportsPage', () => {
   it('renders the heading', () => {
     render(<ReportsPage />)
     expect(screen.getByText('Reports')).toBeInTheDocument()
+  })
+
+  it('renders Generate Report section', () => {
+    render(<ReportsPage />)
+    expect(screen.getByText('Generate Report')).toBeInTheDocument()
+    expect(screen.getByText(/Generate & Download Report/)).toBeInTheDocument()
+  })
+
+  it('renders quick report action cards', () => {
+    render(<ReportsPage />)
+    expect(screen.getByText("Today's Report")).toBeInTheDocument()
+    expect(screen.getByText('Weekly Report')).toBeInTheDocument()
+    expect(screen.getByText('Monthly Report')).toBeInTheDocument()
+  })
+
+  it('renders department routing analytics section', () => {
+    render(<ReportsPage />)
+    expect(screen.getByText('Department Routing Analytics')).toBeInTheDocument()
+    expect(screen.getByText('Total Completed')).toBeInTheDocument()
+    expect(screen.getByText('120 contributions')).toBeInTheDocument()
+  })
+
+  it('renders department filter checkboxes', () => {
+    render(<ReportsPage />)
+    expect(screen.getByText('Filter by Departments (Optional)')).toBeInTheDocument()
+    expect(screen.getByText('All departments will be included')).toBeInTheDocument()
+  })
+
+  it('renders top departments breakdown', () => {
+    render(<ReportsPage />)
+    expect(screen.getByText('Top Departments')).toBeInTheDocument()
   })
 })

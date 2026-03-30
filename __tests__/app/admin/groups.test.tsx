@@ -3,7 +3,18 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
+  useQuery: vi.fn().mockImplementation(() => ({
+    data: {
+      groupsList: [
+        { id: 'g1', name: 'Youth' },
+        { id: 'g2', name: 'Women Ministry' },
+        { id: 'g3', name: 'Men Fellowship' },
+      ],
+    },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 
@@ -45,13 +56,28 @@ describe('GroupsManagementPage', () => {
     expect(screen.getByText('Groups')).toBeInTheDocument()
   })
 
-  it('shows empty state when no groups', () => {
-    render(<GroupsManagementPage />)
-    expect(screen.getByText('No groups yet.')).toBeInTheDocument()
-  })
-
   it('shows the create group button', () => {
     render(<GroupsManagementPage />)
     expect(screen.getByRole('button', { name: /Create Group/i })).toBeInTheDocument()
+  })
+
+  it('renders group names', () => {
+    render(<GroupsManagementPage />)
+    expect(screen.getByText('Youth')).toBeInTheDocument()
+    expect(screen.getByText('Women Ministry')).toBeInTheDocument()
+    expect(screen.getByText('Men Fellowship')).toBeInTheDocument()
+  })
+
+  it('shows correct group count in the header', () => {
+    render(<GroupsManagementPage />)
+    expect(screen.getByText('Existing Groups (3)')).toBeInTheDocument()
+  })
+
+  it('renders edit and delete buttons for each group', () => {
+    render(<GroupsManagementPage />)
+    const editButtons = screen.getAllByRole('button', { name: /Edit/i })
+    expect(editButtons.length).toBe(3)
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(deleteButtons.length).toBe(3)
   })
 })
