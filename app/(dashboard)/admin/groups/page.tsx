@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, AlertCircle, Plus, Pencil, Trash2, Save, X, Users } from "lucide-react";
+import { CheckCircle, AlertCircle, Plus, Pencil, Trash2, Save, X, Users, UserPlus } from "lucide-react";
+import { BulkAddMembersModal } from "@/components/groups/bulk-add-members-modal";
 import {
   GET_GROUPS_LIST,
   CREATE_GROUP,
@@ -50,6 +51,8 @@ export default function GroupsManagementPage() {
   const [editName, setEditName] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<{id: string, name: string} | null>(null);
 
   const { data, loading, refetch } = useQuery<GetGroupsData>(GET_GROUPS_LIST);
   const groups = useMemo(() => data?.groupsList ?? [], [data]);
@@ -98,6 +101,11 @@ export default function GroupsManagementPage() {
     clearMessages();
     setEditingId(group.id);
     setEditName(group.name);
+  };
+
+  const openMemberModal = (group: GroupItem) => {
+    setSelectedGroupForMembers(group);
+    setModalOpen(true);
   };
 
   const cancelEdit = () => {
@@ -249,6 +257,9 @@ export default function GroupsManagementPage() {
                               <Button size="sm" variant="outline" onClick={() => startEdit(group)}>
                                 <Pencil className="h-4 w-4 mr-1" /> Edit
                               </Button>
+                              <Button size="sm" variant="outline" onClick={() => openMemberModal(group)}>
+                                <UserPlus className="h-4 w-4 mr-1" /> Add Members
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -267,6 +278,15 @@ export default function GroupsManagementPage() {
               )}
             </CardContent>
           </Card>
+
+          {selectedGroupForMembers && (
+            <BulkAddMembersModal
+              open={modalOpen}
+              onOpenChange={setModalOpen}
+              groupId={selectedGroupForMembers.id}
+              groupName={selectedGroupForMembers.name}
+            />
+          )}
         </div>
       </AdminLayout>
     </AdminProtectedRoute>

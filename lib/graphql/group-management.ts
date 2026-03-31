@@ -43,3 +43,12 @@ export const DELETE_GROUP = gql`
     }
   }
 `;
+
+export const BULK_ADD_MEMBERS_TO_GROUP = gql`
+  mutation BulkAddMembersToGroup($memberIds: [ID!]!, $groupId: ID!) {
+    bulkAddMembersToGroup(memberIds: $memberIds, groupId: $groupId) {
+      success
+      message
+    }
+  }
+`;

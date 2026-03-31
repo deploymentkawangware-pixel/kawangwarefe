@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import '@testing-library/jest-dom'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
@@ -73,11 +74,13 @@ describe('GroupsManagementPage', () => {
     expect(screen.getByText('Existing Groups (3)')).toBeInTheDocument()
   })
 
-  it('renders edit and delete buttons for each group', () => {
+  it('renders edit, delete, and add members buttons for each group', () => {
     render(<GroupsManagementPage />)
     const editButtons = screen.getAllByRole('button', { name: /Edit/i })
     expect(editButtons.length).toBe(3)
     const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
     expect(deleteButtons.length).toBe(3)
+    const addMembersButtons = screen.getAllByRole('button', { name: /Add Members/i })
+    expect(addMembersButtons.length).toBe(3)
   })
 })
