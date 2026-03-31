@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, AlertCircle, Plus, Pencil, Trash2, Save, X, Users, UserPlus } from "lucide-react";
 import { BulkAddMembersModal } from "@/components/groups/bulk-add-members-modal";
+import { GroupMembersModal } from "@/components/groups/group-members-modal";
 import {
   GET_GROUPS_LIST,
   CREATE_GROUP,
@@ -53,6 +54,7 @@ export default function GroupsManagementPage() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<{id: string, name: string} | null>(null);
+  const [showMembersModal, setShowMembersModal] = useState(false);
 
   const { data, loading, refetch } = useQuery<GetGroupsData>(GET_GROUPS_LIST);
   const groups = useMemo(() => data?.groupsList ?? [], [data]);
@@ -106,6 +108,11 @@ export default function GroupsManagementPage() {
   const openMemberModal = (group: GroupItem) => {
     setSelectedGroupForMembers(group);
     setModalOpen(true);
+  };
+
+  const openMembersInfoModal = (group: GroupItem) => {
+    setSelectedGroupForMembers(group);
+    setShowMembersModal(true);
   };
 
   const cancelEdit = () => {
@@ -260,6 +267,9 @@ export default function GroupsManagementPage() {
                               <Button size="sm" variant="outline" onClick={() => openMemberModal(group)}>
                                 <UserPlus className="h-4 w-4 mr-1" /> Add Members
                               </Button>
+                              <Button size="sm" variant="outline" onClick={() => openMembersInfoModal(group)}>
+                                <Users className="h-4 w-4 mr-1" /> Info
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -283,6 +293,14 @@ export default function GroupsManagementPage() {
             <BulkAddMembersModal
               open={modalOpen}
               onOpenChange={setModalOpen}
+              groupId={selectedGroupForMembers.id}
+              groupName={selectedGroupForMembers.name}
+            />
+          )}
+          {selectedGroupForMembers && (
+            <GroupMembersModal
+              open={showMembersModal}
+              onOpenChange={setShowMembersModal}
               groupId={selectedGroupForMembers.id}
               groupName={selectedGroupForMembers.name}
             />
