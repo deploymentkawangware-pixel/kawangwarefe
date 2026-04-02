@@ -5,6 +5,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { GET_GROUP_MEMBERS } from "@/lib/graphql/group-members";
 
+interface GroupMember {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+}
+
+interface GroupMembersData {
+  group: {
+    id: string;
+    name: string;
+    members: GroupMember[];
+  };
+}
+
 interface GroupMembersModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -13,7 +28,7 @@ interface GroupMembersModalProps {
 }
 
 export function GroupMembersModal({ open, onOpenChange, groupId, groupName }: GroupMembersModalProps) {
-  const { data, loading, error } = useQuery(GET_GROUP_MEMBERS, {
+  const { data, loading, error } = useQuery<GroupMembersData>(GET_GROUP_MEMBERS, {
     variables: { groupId },
     skip: !open,
   });

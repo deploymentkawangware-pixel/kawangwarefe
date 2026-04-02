@@ -62,8 +62,16 @@ export const GET_C2B_TRANSACTION_STATS = gql`
  * Resolve an unmatched C2B transaction by assigning a category
  */
 export const RESOLVE_UNMATCHED_C2B = gql`
-  mutation ResolveUnmatchedC2b($transactionId: ID!, $categoryId: ID!) {
-    resolveUnmatchedC2b(transactionId: $transactionId, categoryId: $categoryId) {
+  mutation ResolveUnmatchedC2b(
+    $transactionId: ID!
+    $categoryId: ID!
+    $purposeId: ID
+  ) {
+    resolveUnmatchedC2b(
+      transactionId: $transactionId
+      categoryId: $categoryId
+      purposeId: $purposeId
+    ) {
       success
       message
       transaction {

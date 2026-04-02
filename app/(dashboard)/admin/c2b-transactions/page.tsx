@@ -7,13 +7,16 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@apollo/client/react";
+import { useQuery, useLazyQuery, useMutation } from "@apollo/client/react";
 import {
   GET_C2B_TRANSACTIONS,
   GET_C2B_TRANSACTION_STATS,
   RESOLVE_UNMATCHED_C2B,
 } from "@/lib/graphql/c2b-queries";
-import { GET_CONTRIBUTION_CATEGORIES } from "@/lib/graphql/queries";
+import {
+  GET_CONTRIBUTION_CATEGORIES,
+  GET_DEPARTMENT_PURPOSES,
+} from "@/lib/graphql/queries";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import {
   Card,
@@ -83,10 +86,21 @@ interface Category {
   id: string;
   name: string;
   code: string;
+  routingMode: string;
 }
 
 interface CategoriesData {
   contributionCategories: Category[];
+}
+
+interface Purpose {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface PurposesData {
+  departmentPurposes: Purpose[];
 }
 
 interface ResolveUnmatchedC2BData {
@@ -140,6 +154,32 @@ function ResolveModal({
   onResolved,
 }: ResolveModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedPurpose, setSelectedPurpose] = useState<string>("");
+
+  // Lazy-fetch purposes when a category is selected
+  const [fetchPurposes, { data: purposesData, loading: purposesLoading }] =
+    useLazyQuery<PurposesData>(GET_DEPARTMENT_PURPOSES);
+
+  const purposes = purposesData?.departmentPurposes || [];
+
+  // Determine if the selected category needs a purpose
+  const selectedCat = categories.find((c) => c.id === selectedCategory);
+  const needsPurpose =
+    selectedCat?.routingMode === "REQUIRES_PURPOSE" ||
+    selectedCat?.routingMode === "OPTIONAL_DETAILS";
+  const purposeRequired = selectedCat?.routingMode === "REQUIRES_PURPOSE";
+
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    setSelectedPurpose("");
+    const cat = categories.find((c) => c.id === catId);
+    if (
+      cat?.routingMode === "REQUIRES_PURPOSE" ||
+      cat?.routingMode === "OPTIONAL_DETAILS"
+    ) {
+      fetchPurposes({ variables: { categoryId: catId } });
+    }
+  };
 
   const [resolveC2B, { loading }] = useMutation<ResolveUnmatchedC2BData>(RESOLVE_UNMATCHED_C2B, {
     onCompleted: (data) => {
@@ -161,10 +201,15 @@ function ResolveModal({
       toast.error("Please select a department");
       return;
     }
+    if (purposeRequired && !selectedPurpose) {
+      toast.error("Please select a purpose for this department");
+      return;
+    }
     resolveC2B({
       variables: {
         transactionId: transaction.id,
         categoryId: selectedCategory,
+        purposeId: selectedPurpose || undefined,
       },
     });
   };
@@ -213,7 +258,7 @@ function ResolveModal({
           {/* Department selector */}
           <div className="space-y-2">
             <Label htmlFor="resolve-category">Assign Department</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
               <SelectTrigger id="resolve-category">
                 <SelectValue placeholder="Select a department..." />
               </SelectTrigger>
@@ -230,8 +275,42 @@ function ResolveModal({
             </Select>
           </div>
 
+          {/* Purpose selector — shown only when category needs it */}
+          {needsPurpose && selectedCategory && (
+            <div className="space-y-2">
+              <Label htmlFor="resolve-purpose">
+                Purpose{purposeRequired ? "" : " (optional)"}
+              </Label>
+              {purposesLoading ? (
+                <p className="text-sm text-muted-foreground">Loading purposes...</p>
+              ) : purposes.length > 0 ? (
+                <Select value={selectedPurpose} onValueChange={setSelectedPurpose}>
+                  <SelectTrigger id="resolve-purpose">
+                    <SelectValue placeholder="Select a purpose..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {purposes.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}{" "}
+                        <span className="text-muted-foreground text-xs ml-1">
+                          ({p.code})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-yellow-600">
+                  No purposes configured for this department.
+                </p>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             This will create a completed contribution record for this payment.
+            {selectedCat?.routingMode === "AUTO_MEMBER_GROUP" &&
+              " The member's group will be assigned automatically."}
           </p>
         </div>
 
@@ -239,7 +318,10 @@ function ResolveModal({
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleResolve} disabled={loading || !selectedCategory}>
+          <Button
+            onClick={handleResolve}
+            disabled={loading || !selectedCategory || (purposeRequired && !selectedPurpose)}
+          >
             {loading ? "Resolving..." : "Resolve Transaction"}
           </Button>
         </div>
