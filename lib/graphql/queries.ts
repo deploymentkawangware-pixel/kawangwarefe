@@ -18,6 +18,10 @@ export const GET_CONTRIBUTION_CATEGORIES = gql`
       isActive
       routingMode
       fallbackIfNoGroup
+      allowedGroups {
+        id
+        name
+      }
     }
   }
 `;

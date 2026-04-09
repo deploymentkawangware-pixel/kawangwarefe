@@ -7,6 +7,7 @@ export const CREATE_CATEGORY = gql`
     $description: String
     $routingMode: String
     $fallbackIfNoGroup: String
+    $allowedGroupIds: [ID!]
   ) {
     createCategory(
       name: $name
@@ -14,6 +15,7 @@ export const CREATE_CATEGORY = gql`
       description: $description
       routingMode: $routingMode
       fallbackIfNoGroup: $fallbackIfNoGroup
+      allowedGroupIds: $allowedGroupIds
     ) {
       success
       message
@@ -25,6 +27,10 @@ export const CREATE_CATEGORY = gql`
         isActive
         routingMode
         fallbackIfNoGroup
+        allowedGroups {
+          id
+          name
+        }
       }
     }
   }
@@ -39,6 +45,7 @@ export const UPDATE_CATEGORY = gql`
     $isActive: Boolean
     $routingMode: String
     $fallbackIfNoGroup: String
+    $allowedGroupIds: [ID!]
   ) {
     updateCategory(
       categoryId: $categoryId
@@ -48,6 +55,7 @@ export const UPDATE_CATEGORY = gql`
       isActive: $isActive
       routingMode: $routingMode
       fallbackIfNoGroup: $fallbackIfNoGroup
+      allowedGroupIds: $allowedGroupIds
     ) {
       success
       message
@@ -59,6 +67,10 @@ export const UPDATE_CATEGORY = gql`
         isActive
         routingMode
         fallbackIfNoGroup
+        allowedGroups {
+          id
+          name
+        }
       }
     }
   }
@@ -83,6 +95,10 @@ export const GET_ALL_CATEGORIES = gql`
       isActive
       routingMode
       fallbackIfNoGroup
+      allowedGroups {
+        id
+        name
+      }
     }
   }
 `;

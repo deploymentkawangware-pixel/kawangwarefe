@@ -59,7 +59,11 @@ interface GroupNamesData {
 }
 
 interface GroupContributionsData {
-  groupContributions: Contribution[];
+  groupContributions: {
+    items: Contribution[];
+    total: number;
+    hasMore: boolean;
+  };
 }
 
 interface StatsData {
@@ -90,6 +94,10 @@ export default function ContributionsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
 
   // Get categories
   const { data: categoriesData } = useQuery<CategoriesData>(GET_CONTRIBUTION_CATEGORIES);
@@ -100,45 +108,70 @@ export default function ContributionsPage() {
   });
   const groupNames = groupNamesData?.myGroupNames || [];
 
+  // Get contributions with filters
+  const isGroupScopedView = isGroupAdmin && !isStaff && !isCategoryAdmin;
+
+  const offset = (page - 1) * pageSize;
+  const filters = {
+    status: statusFilter === "all" ? null : statusFilter,
+    categoryId: categoryFilter === "all" ? null : categoryFilter,
+    search: searchTerm || null,
+    dateFrom: dateFrom ? new Date(dateFrom).toISOString() : null,
+    dateTo: dateTo ? new Date(dateTo).toISOString() : null,
+  };
+
   // Get stats (group-admins use scoped list, not staff stats)
   const { data: statsData } = useQuery<StatsData>(GET_CONTRIBUTION_STATS, {
     skip: isGroupAdmin && !isStaff && !isCategoryAdmin,
   });
   const stats = statsData?.contributionStats;
 
-  // Get contributions with filters
-  const isGroupScopedView = isGroupAdmin && !isStaff && !isCategoryAdmin;
-
   const { data, loading, error } = useQuery<ContributionsData>(GET_ALL_CONTRIBUTIONS, {
     skip: isGroupScopedView,
     variables: {
-      filters: {
-        status: statusFilter !== "all" ? statusFilter : null,
-        categoryId: categoryFilter !== "all" ? categoryFilter : null,
-        search: searchTerm || null,
-      },
+      filters,
       pagination: {
-        limit: 100,
-        offset: 0,
+        limit: pageSize,
+        offset,
       },
     },
   });
 
-  const effectiveGroupName = selectedGroup !== "all" ? selectedGroup : groupNames[0];
+  const effectiveGroupName = selectedGroup === "all" ? groupNames[0] : selectedGroup;
   const { data: groupData, loading: groupLoading, error: groupError } = useQuery<GroupContributionsData>(GET_GROUP_CONTRIBUTIONS, {
     skip: !isGroupScopedView || !effectiveGroupName,
     variables: {
       groupName: effectiveGroupName,
-      limit: 100,
-      offset: 0,
+      filters,
+      pagination: {
+        limit: pageSize,
+        offset,
+      },
     },
   });
 
   const contributions = isGroupScopedView
-    ? (groupData?.groupContributions || [])
+    ? (groupData?.groupContributions.items || [])
     : (data?.allContributions.items || []);
+  const totalContributions = isGroupScopedView
+    ? (groupData?.groupContributions.total || 0)
+    : (data?.allContributions.total || 0);
+  const hasMore = isGroupScopedView
+    ? (groupData?.groupContributions.hasMore || false)
+    : (data?.allContributions.hasMore || false);
+  const totalPages = Math.max(1, Math.ceil(totalContributions / pageSize));
   const activeLoading = isGroupScopedView ? groupLoading : loading;
   const activeError = isGroupScopedView ? groupError : error;
+
+  const getStatusBadgeClass = (status: string) => {
+    if (status === "completed") {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
+    }
+    if (status === "failed") {
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
+    }
+    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
+  };
 
   return (
     <AdminLayout>
@@ -241,7 +274,10 @@ export default function ContributionsPage() {
                     id="search"
                     placeholder="Phone number, name, receipt..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setPage(1);
+                    }}
                     className="pl-8"
                   />
                 </div>
@@ -250,7 +286,10 @@ export default function ContributionsPage() {
               {/* Status Filter */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}>
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
@@ -266,7 +305,10 @@ export default function ContributionsPage() {
               {/* Department Filter */}
               <div className="space-y-2">
                 <Label htmlFor="category">Department</Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter} onValueChange={(value) => {
+                  setCategoryFilter(value);
+                  setPage(1);
+                }}>
                   <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
@@ -285,7 +327,10 @@ export default function ContributionsPage() {
               {isGroupScopedView && (
                 <div className="space-y-2">
                   <Label htmlFor="groupName">My Group</Label>
-                  <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                  <Select value={selectedGroup} onValueChange={(value) => {
+                    setSelectedGroup(value);
+                    setPage(1);
+                  }}>
                     <SelectTrigger id="groupName">
                       <SelectValue placeholder="Select group" />
                     </SelectTrigger>
@@ -302,6 +347,49 @@ export default function ContributionsPage() {
               )}
             </div>
 
+            <div className="grid md:grid-cols-3 gap-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="dateFrom">From (date & time)</Label>
+                <Input
+                  id="dateFrom"
+                  type="datetime-local"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateTo">To (date & time)</Label>
+                <Input
+                  id="dateTo"
+                  type="datetime-local"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pageSize">Page Size</Label>
+                <Select value={String(pageSize)} onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setPage(1);
+                }}>
+                  <SelectTrigger id="pageSize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex justify-end mt-4">
               <Button
                 variant="outline"
@@ -309,6 +397,9 @@ export default function ContributionsPage() {
                   setStatusFilter("all");
                   setCategoryFilter("all");
                   setSearchTerm("");
+                  setDateFrom("");
+                  setDateTo("");
+                  setPage(1);
                 }}
               >
                 Clear Filters
@@ -322,7 +413,7 @@ export default function ContributionsPage() {
           <CardHeader>
             <CardTitle>All Contributions</CardTitle>
             <CardDescription>
-              {contributions.length} contribution{contributions.length !== 1 ? 's' : ''} found
+              {totalContributions} contribution{totalContributions === 1 ? '' : 's'} found
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -355,12 +446,7 @@ export default function ContributionsPage() {
                         KES {Number.parseFloat(contribution.amount).toLocaleString()}
                       </span>
                       <span
-                        className={`inline-block px-2 py-1 text-xs rounded-full ${contribution.status === 'completed'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                          : contribution.status === 'failed'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-                          }`}
+                        className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(contribution.status)}`}
                       >
                         {contribution.status}
                       </span>
@@ -448,12 +534,7 @@ export default function ContributionsPage() {
                         </td>
                         <td className="p-3 text-center">
                           <span
-                            className={`inline-block px-2 py-1 text-xs rounded-full ${contribution.status === 'completed'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                              : contribution.status === 'failed'
-                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-                              }`}
+                            className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(contribution.status)}`}
                           >
                             {contribution.status}
                           </span>
@@ -465,6 +546,30 @@ export default function ContributionsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasMore}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
               </>
             )}

@@ -14,12 +14,14 @@ import {
   UPDATE_CATEGORY,
   DELETE_CATEGORY,
 } from "@/lib/graphql/category-mutations";
+import { GET_GROUPS_LIST } from "@/lib/graphql/group-management";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AdminLayout } from "@/components/layouts/admin-layout";
@@ -46,6 +48,16 @@ interface Category {
   isActive: boolean;
   routingMode?: "TOP_LEVEL" | "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE" | "OPTIONAL_DETAILS";
   fallbackIfNoGroup?: "TOP_LEVEL" | "REJECT";
+  allowedGroups?: GroupItem[];
+}
+
+interface GroupItem {
+  id: string;
+  name: string;
+}
+
+interface GetGroupsData {
+  groupsList: GroupItem[];
 }
 
 interface GetCategoriesData {
@@ -88,6 +100,7 @@ function CategoryManagementPageContent() {
   const [newDescription, setNewDescription] = useState("");
   const [newRoutingMode, setNewRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
   const [newFallbackIfNoGroup, setNewFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
+  const [newAllowedGroupIds, setNewAllowedGroupIds] = useState<string[]>([]);
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -95,9 +108,12 @@ function CategoryManagementPageContent() {
   const [editDescription, setEditDescription] = useState("");
   const [editRoutingMode, setEditRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
   const [editFallbackIfNoGroup, setEditFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
+  const [editAllowedGroupIds, setEditAllowedGroupIds] = useState<string[]>([]);
 
   const { data, loading, refetch } = useQuery<GetCategoriesData>(GET_ALL_CATEGORIES);
   const categories = data?.contributionCategories || [];
+  const { data: groupsData } = useQuery<GetGroupsData>(GET_GROUPS_LIST);
+  const groups = groupsData?.groupsList || [];
 
   const [createCategory, { loading: creating }] = useMutation<CreateCategoryData>(CREATE_CATEGORY);
   const [updateCategory, { loading: updating }] = useMutation<UpdateCategoryData>(UPDATE_CATEGORY);
@@ -113,6 +129,18 @@ function CategoryManagementPageContent() {
       return err.message;
     }
     return fallback;
+  };
+
+  const toggleSelectedGroup = (
+    groupId: string,
+    selectedGroupIds: string[],
+    setSelectedGroupIds: (groupIds: string[]) => void,
+  ) => {
+    if (selectedGroupIds.includes(groupId)) {
+      setSelectedGroupIds(selectedGroupIds.filter((id) => id !== groupId));
+      return;
+    }
+    setSelectedGroupIds([...selectedGroupIds, groupId]);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -132,6 +160,7 @@ function CategoryManagementPageContent() {
           description: newDescription.trim(),
           routingMode: newRoutingMode,
           fallbackIfNoGroup: newRoutingMode === "AUTO_MEMBER_GROUP" ? newFallbackIfNoGroup : "TOP_LEVEL",
+          allowedGroupIds: newRoutingMode === "AUTO_MEMBER_GROUP" ? newAllowedGroupIds : [],
         },
       });
 
@@ -142,6 +171,7 @@ function CategoryManagementPageContent() {
         setNewDescription("");
         setNewRoutingMode("REQUIRES_PURPOSE");
         setNewFallbackIfNoGroup("TOP_LEVEL");
+        setNewAllowedGroupIds([]);
         setShowCreateForm(false);
         refetch();
       } else {
@@ -159,6 +189,7 @@ function CategoryManagementPageContent() {
     setEditDescription(category.description);
     setEditRoutingMode(category.routingMode === "AUTO_MEMBER_GROUP" ? "AUTO_MEMBER_GROUP" : "REQUIRES_PURPOSE");
     setEditFallbackIfNoGroup(category.fallbackIfNoGroup === "REJECT" ? "REJECT" : "TOP_LEVEL");
+    setEditAllowedGroupIds((category.allowedGroups || []).map((group) => group.id));
     clearMessages();
   };
 
@@ -184,6 +215,7 @@ function CategoryManagementPageContent() {
           description: editDescription.trim(),
           routingMode: editRoutingMode,
           fallbackIfNoGroup: editRoutingMode === "AUTO_MEMBER_GROUP" ? editFallbackIfNoGroup : "TOP_LEVEL",
+          allowedGroupIds: editRoutingMode === "AUTO_MEMBER_GROUP" ? editAllowedGroupIds : [],
         },
       });
 
@@ -374,7 +406,13 @@ function CategoryManagementPageContent() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="routingMode">Department Type *</Label>
-                    <Select value={newRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => setNewRoutingMode(value)}>
+                    <Select value={newRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => {
+                      setNewRoutingMode(value);
+                      if (value !== "AUTO_MEMBER_GROUP") {
+                        setNewAllowedGroupIds([]);
+                        setNewFallbackIfNoGroup("TOP_LEVEL");
+                      }
+                    }}>
                       <SelectTrigger id="routingMode">
                         <SelectValue />
                       </SelectTrigger>
@@ -385,17 +423,39 @@ function CategoryManagementPageContent() {
                     </Select>
                   </div>
                   {newRoutingMode === "AUTO_MEMBER_GROUP" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="fallbackIfNoGroup">If member has no group</Label>
-                      <Select value={newFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setNewFallbackIfNoGroup(value)}>
-                        <SelectTrigger id="fallbackIfNoGroup">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
-                          <SelectItem value="REJECT">Reject Contribution</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="fallbackIfNoGroup">If member has no group</Label>
+                        <Select value={newFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setNewFallbackIfNoGroup(value)}>
+                          <SelectTrigger id="fallbackIfNoGroup">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
+                            <SelectItem value="REJECT">Reject Contribution</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Allowed Groups for Auto Route</Label>
+                        <div className="max-h-40 overflow-y-auto rounded-md border p-3 space-y-2">
+                          {groups.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No groups available.</p>
+                          ) : (
+                            groups.map((group) => (
+                              <label key={group.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <Checkbox
+                                  checked={newAllowedGroupIds.includes(group.id)}
+                                  onCheckedChange={() =>
+                                    toggleSelectedGroup(group.id, newAllowedGroupIds, setNewAllowedGroupIds)
+                                  }
+                                />
+                                {group.name}
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -468,7 +528,13 @@ function CategoryManagementPageContent() {
                         <div className="grid md:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs">Department Type</Label>
-                            <Select value={editRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => setEditRoutingMode(value)}>
+                            <Select value={editRoutingMode} onValueChange={(value: "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE") => {
+                              setEditRoutingMode(value);
+                              if (value !== "AUTO_MEMBER_GROUP") {
+                                setEditAllowedGroupIds([]);
+                                setEditFallbackIfNoGroup("TOP_LEVEL");
+                              }
+                            }}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
@@ -479,17 +545,39 @@ function CategoryManagementPageContent() {
                             </Select>
                           </div>
                           {editRoutingMode === "AUTO_MEMBER_GROUP" && (
-                            <div>
-                              <Label className="text-xs">If member has no group</Label>
-                              <Select value={editFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setEditFallbackIfNoGroup(value)}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
-                                  <SelectItem value="REJECT">Reject Contribution</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            <div className="space-y-2">
+                              <div>
+                                <Label className="text-xs">If member has no group</Label>
+                                <Select value={editFallbackIfNoGroup} onValueChange={(value: "TOP_LEVEL" | "REJECT") => setEditFallbackIfNoGroup(value)}>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="TOP_LEVEL">Fallback to Top-level</SelectItem>
+                                    <SelectItem value="REJECT">Reject Contribution</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Allowed Groups for Auto Route</Label>
+                                <div className="max-h-36 overflow-y-auto rounded-md border p-3 space-y-2">
+                                  {groups.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground">No groups available.</p>
+                                  ) : (
+                                    groups.map((group) => (
+                                      <label key={group.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <Checkbox
+                                          checked={editAllowedGroupIds.includes(group.id)}
+                                          onCheckedChange={() =>
+                                            toggleSelectedGroup(group.id, editAllowedGroupIds, setEditAllowedGroupIds)
+                                          }
+                                        />
+                                        {group.name}
+                                      </label>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -527,6 +615,11 @@ function CategoryManagementPageContent() {
                             )}
                             {category.routingMode === "AUTO_MEMBER_GROUP" && (
                               <Badge variant="outline" className="text-xs">Auto Group Match</Badge>
+                            )}
+                            {category.routingMode === "AUTO_MEMBER_GROUP" && (category.allowedGroups?.length || 0) > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {category.allowedGroups?.length} allowed group{(category.allowedGroups?.length || 0) === 1 ? "" : "s"}
+                              </Badge>
                             )}
                           </div>
                           {category.routingMode === "REQUIRES_PURPOSE" && (

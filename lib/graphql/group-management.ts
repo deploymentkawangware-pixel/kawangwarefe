@@ -52,3 +52,16 @@ export const BULK_ADD_MEMBERS_TO_GROUP = gql`
     }
   }
 `;
+
+export const REMOVE_MEMBER_FROM_GROUP = gql`
+  mutation RemoveMemberFromGroup($memberId: ID!, $groupId: ID!) {
+    removeMemberFromGroup(memberId: $memberId, groupId: $groupId) {
+      success
+      message
+      group {
+        id
+        name
+      }
+    }
+  }
+`;

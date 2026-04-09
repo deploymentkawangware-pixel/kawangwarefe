@@ -4,6 +4,7 @@ import {
   CREATE_GROUP,
   UPDATE_GROUP,
   DELETE_GROUP,
+  REMOVE_MEMBER_FROM_GROUP,
 } from '@/lib/graphql/group-management'
 
 describe('group-management', () => {
@@ -45,5 +46,15 @@ describe('group-management', () => {
   it('DELETE_GROUP contains deleteGroup operation', () => {
     const body = (DELETE_GROUP as any).loc?.source?.body || ''
     expect(body).toContain('deleteGroup')
+  })
+
+  it('exports REMOVE_MEMBER_FROM_GROUP as DocumentNode', () => {
+    expect(REMOVE_MEMBER_FROM_GROUP).toBeDefined()
+    expect(REMOVE_MEMBER_FROM_GROUP.kind).toBe('Document')
+  })
+
+  it('REMOVE_MEMBER_FROM_GROUP contains removeMemberFromGroup operation', () => {
+    const body = (REMOVE_MEMBER_FROM_GROUP as any).loc?.source?.body || ''
+    expect(body).toContain('removeMemberFromGroup')
   })
 })

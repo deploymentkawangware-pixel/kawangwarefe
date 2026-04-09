@@ -170,32 +170,40 @@ export const GET_DEPARTMENT_ROUTING_REPORT = gql`
  * Get contributions for a single group (group-admin scoped).
  */
 export const GET_GROUP_CONTRIBUTIONS = gql`
-  query GetGroupContributions($groupName: String!, $limit: Int!, $offset: Int!) {
-    groupContributions(groupName: $groupName, limit: $limit, offset: $offset) {
-      id
-      amount
-      status
-      transactionDate
-      notes
-      routedGroupName
-      purposeName
-      member {
+  query GetGroupContributions(
+    $groupName: String!
+    $filters: ContributionFilters
+    $pagination: PaginationInput
+  ) {
+    groupContributions(groupName: $groupName, filters: $filters, pagination: $pagination) {
+      items {
         id
-        fullName
-        phoneNumber
-        memberNumber
-      }
-      category {
-        id
-        name
-        code
-      }
-      mpesaTransaction {
-        id
-        mpesaReceiptNumber
+        amount
         status
-        resultDesc
+        transactionDate
+        notes
+        routedGroupName
+        purposeName
+        member {
+          id
+          fullName
+          phoneNumber
+          memberNumber
+        }
+        category {
+          id
+          name
+          code
+        }
+        mpesaTransaction {
+          id
+          mpesaReceiptNumber
+          status
+          resultDesc
+        }
       }
+      total
+      hasMore
     }
   }
 `;
