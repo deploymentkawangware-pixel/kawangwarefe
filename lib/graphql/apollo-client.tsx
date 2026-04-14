@@ -96,9 +96,16 @@ function makeClient() {
     // Check if this is a GraphQL error with the errors array
     if (CombinedGraphQLErrors.is(error)) {
       for (const err of error.errors) {
+        const msg = err.message?.toLowerCase() ?? "";
+        const code = (err.extensions?.code as string | undefined)?.toLowerCase() ?? "";
         if (
-          err.message?.includes("Authentication required") ||
-          err.message?.includes("permission")
+          msg.includes("authentication required") ||
+          msg.includes("not authenticated") ||
+          msg.includes("unauthorized") ||
+          msg.includes("unauthenticated") ||
+          msg.includes("permission") ||
+          code === "unauthenticated" ||
+          code === "forbidden"
         ) {
           // Try to refresh the token
           return new Observable((observer) => {

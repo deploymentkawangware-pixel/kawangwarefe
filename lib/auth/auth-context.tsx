@@ -216,7 +216,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Login function
+  /**
+   * Proactive silent token refresh.
+   * Whenever the access token changes, schedule a refresh 2 minutes before
+   * it expires so users on long sessions never hit an "Authentication required"
+   * error mid-request. The timer is cleared / reset whenever the token changes
+   * (e.g. after refesh) or the component unmounts.
+   */
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    try {
+      const payload = JSON.parse(atob(accessToken.split(".")[1]));
+      const expiresInMs = payload.exp * 1000 - Date.now();
+      // Refresh 2 minutes before expiry, but only if there's enough time left
+      const refreshInMs = expiresInMs - 2 * 60 * 1000;
+
+      if (refreshInMs > 0) {
+        timer = setTimeout(async () => {
+          const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+          if (refreshToken && isTokenValid(refreshToken)) {
+            // `refreshAccessToken` is defined below in the same closure,
+            // but by the time the timer fires it will be available via the
+            // ref captured at schedule-time — use the callback directly.
+            try {
+              const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+              if (!storedRefresh) return;
+              const response = await fetch(
+                process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:8000/graphql",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    query: `mutation RefreshToken($refreshToken: String!) {
+                      refreshToken(refreshToken: $refreshToken) {
+                        success
+                        accessToken
+                      }
+                    }`,
+                    variables: { refreshToken: storedRefresh },
+                  }),
+                }
+              );
+              const json = await response.json();
+              const result = json?.data?.refreshToken;
+              if (result?.success && result?.accessToken) {
+                localStorage.setItem(TOKEN_KEY, result.accessToken);
+                setAccessToken(result.accessToken);
+                setSessionCookie(true);
+              }
+            } catch {
+              // Silent failure — the Apollo errorLink will handle recovery
+            }
+          }
+        }, refreshInMs);
+      }
+    } catch {
+      // Malformed token — ignore
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [accessToken]);
+
+
   const login = useCallback(
     async (phoneNumber: string, otpCode: string): Promise<{ success: boolean; message: string; isNewMember?: boolean }> => {
       try {

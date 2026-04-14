@@ -220,13 +220,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => router.push("/dashboard")}
                 >
                   Member View
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </div>
             </div>
