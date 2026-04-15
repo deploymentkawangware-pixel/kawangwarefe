@@ -57,6 +57,7 @@ interface Announcement {
   title: string;
   content: string;
   publishDate: string;
+  expiryDate?: string | null;
   isActive: boolean;
   priority: number;
   createdAt: string;
@@ -86,6 +87,7 @@ function AnnouncementsManagementPageContent() {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newPublishDate, setNewPublishDate] = useState("");
+  const [newExpiryDate, setNewExpiryDate] = useState("");
   const [newIsActive, setNewIsActive] = useState(true);
   const [newPriority, setNewPriority] = useState(0);
 
@@ -93,6 +95,7 @@ function AnnouncementsManagementPageContent() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editPublishDate, setEditPublishDate] = useState("");
+  const [editExpiryDate, setEditExpiryDate] = useState("");
   const [editIsActive, setEditIsActive] = useState(false);
   const [editPriority, setEditPriority] = useState(0);
 
@@ -139,6 +142,7 @@ function AnnouncementsManagementPageContent() {
     setNewTitle("");
     setNewContent("");
     setNewPublishDate("");
+    setNewExpiryDate("");
     setNewIsActive(true);
     setNewPriority(0);
   };
@@ -158,6 +162,7 @@ function AnnouncementsManagementPageContent() {
           title: newTitle.trim(),
           content: newContent.trim(),
           publishDate: newPublishDate || undefined,
+          expiryDate: newExpiryDate || undefined,
           isActive: newIsActive,
           priority: newPriority,
         },
@@ -181,6 +186,7 @@ function AnnouncementsManagementPageContent() {
     setEditTitle(announcement.title);
     setEditContent(announcement.content);
     setEditPublishDate(announcement.publishDate ? announcement.publishDate.split("T")[0] : "");
+    setEditExpiryDate(announcement.expiryDate ? announcement.expiryDate.split("T")[0] : "");
     setEditIsActive(announcement.isActive);
     setEditPriority(announcement.priority);
     setShowEditDialog(true);
@@ -198,6 +204,7 @@ function AnnouncementsManagementPageContent() {
           title: editTitle.trim() || undefined,
           content: editContent.trim() || undefined,
           publishDate: editPublishDate || undefined,
+          expiryDate: editExpiryDate || "",
           isActive: editIsActive,
           priority: editPriority,
         },
@@ -539,6 +546,12 @@ function AnnouncementsManagementPageContent() {
                                 <Calendar className="h-4 w-4" />
                                 {format(new Date(announcement.publishDate), "MMM d, yyyy")}
                               </span>
+                              {announcement.expiryDate && (
+                                <span className="flex items-center gap-1">
+                                  <span title="Expiry Date">⏱️</span>
+                                  {format(new Date(announcement.expiryDate), "MMM d, yyyy")}
+                                </span>
+                              )}
                               <div className="flex items-center gap-2">
                                 <Button
                                   size="sm"
@@ -647,6 +660,21 @@ function AnnouncementsManagementPageContent() {
                 </div>
 
                 <div>
+                  <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
+                  <Input
+                    id="expiryDate"
+                    type="date"
+                    value={newExpiryDate}
+                    onChange={(e) => setNewExpiryDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave empty to keep announcement indefinitely.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
                   <Label htmlFor="priority">Priority (0 = normal, higher = more important)</Label>
                   <Input
                     id="priority"
@@ -724,6 +752,21 @@ function AnnouncementsManagementPageContent() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="editExpiryDate">Expiry Date (Optional)</Label>
+                  <Input
+                    id="editExpiryDate"
+                    type="date"
+                    value={editExpiryDate}
+                    onChange={(e) => setEditExpiryDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave empty to keep announcement indefinitely.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="editPriority">Priority</Label>
                   <Input

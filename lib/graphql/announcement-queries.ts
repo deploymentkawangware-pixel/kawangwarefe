@@ -7,6 +7,7 @@ export const GET_ALL_ANNOUNCEMENTS = gql`
       title
       content
       publishDate
+      expiryDate
       isActive
       priority
       createdAt

@@ -5,6 +5,7 @@ export const CREATE_ANNOUNCEMENT = gql`
     $title: String!
     $content: String!
     $publishDate: String
+    $expiryDate: String
     $isActive: Boolean
     $priority: Int
   ) {
@@ -12,6 +13,7 @@ export const CREATE_ANNOUNCEMENT = gql`
       title: $title
       content: $content
       publishDate: $publishDate
+      expiryDate: $expiryDate
       isActive: $isActive
       priority: $priority
     ) {
@@ -22,6 +24,7 @@ export const CREATE_ANNOUNCEMENT = gql`
         title
         content
         publishDate
+        expiryDate
         isActive
         priority
         createdAt
@@ -37,6 +40,7 @@ export const UPDATE_ANNOUNCEMENT = gql`
     $title: String
     $content: String
     $publishDate: String
+    $expiryDate: String
     $isActive: Boolean
     $priority: Int
   ) {
@@ -45,6 +49,7 @@ export const UPDATE_ANNOUNCEMENT = gql`
       title: $title
       content: $content
       publishDate: $publishDate
+      expiryDate: $expiryDate
       isActive: $isActive
       priority: $priority
     ) {
@@ -55,6 +60,7 @@ export const UPDATE_ANNOUNCEMENT = gql`
         title
         content
         publishDate
+        expiryDate
         isActive
         priority
         createdAt
