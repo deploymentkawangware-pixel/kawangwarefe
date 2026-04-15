@@ -116,7 +116,7 @@ export function ContributionSummary({
             variant="outline"
             onClick={onEdit}
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 h-11 sm:h-10"
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -125,7 +125,7 @@ export function ContributionSummary({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 h-11 sm:h-10"
           >
             <Send className="mr-2 h-4 w-4" />
             {isLoading ? "Processing..." : "Confirm & Send M-Pesa Prompt"}

@@ -225,7 +225,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <Button
               variant="outline"
-              size="sm"
+              size="mobile-sm"
               className="w-full"
               onClick={handleLogout}
             >
@@ -244,8 +244,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
-                size="icon"
-                className="lg:hidden h-10 w-10"
+                size="icon-mobile"
+                className="lg:hidden"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
@@ -261,8 +261,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="sm:hidden h-10 w-10"
+                  size="icon-mobile"
+                  className="sm:hidden"
                   onClick={() => router.push("/dashboard")}
                   title="Member View"
                 >
@@ -270,8 +270,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 </Button>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="lg:hidden h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  size="icon-mobile"
+                  className="lg:hidden text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleLogout}
                   title="Logout"
                 >

@@ -89,7 +89,7 @@ export function BottomNav() {
 
       {/* Bottom nav bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card border-t border-border safe-area-bottom">
-        <div className="flex items-center justify-around h-14">
+        <div className="flex items-center justify-around h-16 sm:h-14">
           {primaryLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.href);
@@ -97,24 +97,24 @@ export function BottomNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex flex-col items-center justify-center min-w-[3rem] py-1 px-2 transition-colors ${
+                className={`flex flex-col items-center justify-center min-w-[3rem] py-2 px-3 transition-colors flex-1 h-full ${
                   active
                     ? "text-primary"
                     : "text-muted-foreground"
                 }`}
               >
-                <Icon className={`h-5 w-5 ${active ? "stroke-[2.5]" : ""}`} />
+                <Icon className={`h-6 w-6 ${active ? "stroke-[2.5]" : ""}`} />
                 <span className="text-[10px] mt-0.5 font-medium">{link.label}</span>
               </Link>
             );
           })}
           <button
             onClick={() => setMoreOpen(!moreOpen)}
-            className={`flex flex-col items-center justify-center min-w-[3rem] py-1 px-2 transition-colors ${
+            className={`flex flex-col items-center justify-center min-w-[3rem] py-2 px-3 transition-colors flex-1 h-full ${
               moreOpen ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <MoreHorizontal className="h-5 w-5" />
+            <MoreHorizontal className="h-6 w-6" />
             <span className="text-[10px] mt-0.5 font-medium">More</span>
           </button>
         </div>

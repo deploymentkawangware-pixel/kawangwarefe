@@ -497,7 +497,7 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
           <Button
             variant="outline"
             onClick={handleCancelWaiting}
-            className="mt-4"
+            className="mt-4 h-11 sm:h-10"
           >
             Cancel
           </Button>
@@ -564,8 +564,7 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
               setContributionDetails(null);
               if (onSuccess) onSuccess(null);
             }}
-            size="lg"
-            className="w-full max-w-md"
+            className="w-full max-w-md h-11 sm:h-10"
           >
             Make Another Contribution
           </Button>

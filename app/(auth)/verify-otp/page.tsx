@@ -129,7 +129,7 @@ function VerifyOtpContent() {
         <Button
           variant="ghost"
           onClick={() => router.push("/login")}
-          className="mb-4"
+          className="mb-4 h-10 sm:h-9"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Login
@@ -167,7 +167,7 @@ function VerifyOtpContent() {
                       onChange={(e) => handleChange(index, e.currentTarget.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       disabled={isSubmitting}
-                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold"
+                      className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-semibold"
                     />
                   ))}
                 </div>
@@ -178,7 +178,7 @@ function VerifyOtpContent() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-11 sm:h-10"
                 disabled={isSubmitting || otp.some((digit) => !digit)}
               >
                 {isSubmitting ? (
