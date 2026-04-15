@@ -361,17 +361,17 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
   // Input Step
   if (step === "input") {
     return (
-      <Card className="w-full shadow-lg">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-xl md:text-2xl">
+      <Card className="w-full shadow-lg border border-emerald-200/30 dark:border-emerald-800/30">
+        <CardHeader className="space-y-2 border-b border-emerald-100/50 dark:border-emerald-900/30 pb-4">
+          <CardTitle className="text-2xl md:text-3xl bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400 bg-clip-text text-transparent">
             Make a Contribution
           </CardTitle>
-          <CardDescription className="text-sm">
+          <CardDescription className="text-sm text-muted-foreground">
             Select one or more departments and enter amounts. You'll receive a
             single M-Pesa prompt for the total.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form className="space-y-5">
             <PhoneInput
               name="phoneNumber"
@@ -406,9 +406,9 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
 
             {/* Total Display */}
             {parseFloat(totalAmount) > 0 && (
-              <div className="flex justify-between items-center p-4 bg-primary/5 rounded-lg border">
-                <span className="font-semibold">Total Amount:</span>
-                <span className="text-xl font-bold text-primary">
+              <div className="flex justify-between items-center p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-lg border-2 border-emerald-300/50 dark:border-emerald-700/50">
+                <span className="font-semibold text-emerald-900 dark:text-emerald-200">Total Amount:</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
                   KES {parseFloat(totalAmount).toLocaleString("en-KE")}
                 </span>
               </div>
@@ -416,7 +416,7 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
 
             <Button
               type="button"
-              className="w-full h-11"
+              className="w-full h-11 bg-gradient-to-r from-teal-600 via-emerald-600 to-blue-600 hover:from-teal-700 hover:via-emerald-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
               onClick={handleReviewClick}
               size="lg"
             >

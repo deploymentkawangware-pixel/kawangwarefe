@@ -2,12 +2,27 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+interface CardProps extends React.ComponentProps<"div"> {
+  variant?: "default" | "teal" | "emerald" | "blue" | "purple" | "red" | "amber"
+}
+
+const variantStyles = {
+  default: "",
+  teal: "border-l-4 border-l-teal-600 dark:border-l-teal-400",
+  emerald: "border-l-4 border-l-emerald-600 dark:border-l-emerald-400",
+  blue: "border-l-4 border-l-blue-600 dark:border-l-blue-400",
+  purple: "border-l-4 border-l-purple-600 dark:border-l-purple-400",
+  red: "border-l-4 border-l-red-600 dark:border-l-red-400",
+  amber: "border-l-4 border-l-amber-600 dark:border-l-amber-400",
+}
+
+function Card({ className, variant = "default", ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        variantStyles[variant],
         className
       )}
       {...props}

@@ -10,6 +10,7 @@ import { AdminLayout } from "@/components/layouts/admin-layout";
 import { useQuery } from "@apollo/client/react";
 import { GET_DASHBOARD_STATS, GET_ALL_CONTRIBUTIONS } from "@/lib/graphql/admin-queries";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 import { DollarSign, TrendingUp, Users, Calendar, Loader2 } from "lucide-react";
 
 interface DashboardStats {
@@ -23,6 +24,9 @@ interface DashboardStats {
   totalCount: number;
   totalMembers: number;
   activeMembers: number;
+  previousDayTotal?: string;
+  previousWeekTotal?: string;
+  previousMonthTotal?: string;
 }
 
 interface Contribution {
@@ -37,6 +41,69 @@ interface Contribution {
   category: {
     name: string;
   };
+}
+
+// Helper function to calculate trend percentage
+function calculateTrendPercentage(current: string, previous: string): { percentage: number; direction: "up" | "down" | "neutral" } {
+  const curr = Number.parseFloat(current || "0");
+  const prev = Number.parseFloat(previous || "0");
+
+  if (prev === 0) {
+    return { percentage: 0, direction: "neutral" };
+  }
+
+  const change = ((curr - prev) / prev) * 100;
+
+  if (change > 0) {
+    return { percentage: change, direction: "up" };
+  } else if (change < 0) {
+    return { percentage: Math.abs(change), direction: "down" };
+  }
+
+  return { percentage: 0, direction: "neutral" };
+}
+
+// Status badge component for contribution status display
+function StatusBadge({ status }: { status: string }) {
+  const statusConfig: Record<
+    string,
+    { bg: string; text: string; label: string }
+  > = {
+    completed: {
+      bg: "bg-green-100 dark:bg-green-900/30",
+      text: "text-green-800 dark:text-green-300",
+      label: "✓ Completed",
+    },
+    pending: {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-amber-800 dark:text-amber-300",
+      label: "⏳ Pending",
+    },
+    failed: {
+      bg: "bg-red-100 dark:bg-red-900/30",
+      text: "text-red-800 dark:text-red-300",
+      label: "✗ Failed",
+    },
+    processing: {
+      bg: "bg-blue-100 dark:bg-blue-900/30",
+      text: "text-blue-800 dark:text-blue-300",
+      label: "↻ Processing",
+    },
+  };
+
+  const config = statusConfig[status.toLowerCase()] || {
+    bg: "bg-gray-100 dark:bg-gray-900/30",
+    text: "text-gray-800 dark:text-gray-300",
+    label: status,
+  };
+
+  return (
+    <span
+      className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full ${config.bg} ${config.text}`}
+    >
+      {config.label}
+    </span>
+  );
 }
 
 function AdminDashboardContent() {
@@ -64,6 +131,11 @@ function AdminDashboardContent() {
     );
   }
 
+  // Calculate trends
+  const todayTrend = calculateTrendPercentage(stats?.todayTotal || "0", stats?.previousDayTotal || "0");
+  const weekTrend = calculateTrendPercentage(stats?.weekTotal || "0", stats?.previousWeekTotal || "0");
+  const monthTrend = calculateTrendPercentage(stats?.monthTotal || "0", stats?.previousMonthTotal || "0");
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -74,82 +146,49 @@ function AdminDashboardContent() {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Using new StatCard component */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-teal-600 dark:border-l-teal-400">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today</CardTitle>
-            <div className="bg-teal-100 dark:bg-teal-900/30 p-2 rounded-lg">
-              <Calendar className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              KES {Number.parseFloat(stats?.todayTotal || "0").toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.todayCount || 0} contributions
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Today"
+          value={`KES ${Number.parseFloat(stats?.todayTotal || "0").toLocaleString()}`}
+          icon={Calendar}
+          color="teal"
+          trend={todayTrend}
+          subtitle={`${stats?.todayCount || 0} contributions`}
+        />
 
-        <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-400">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg">
-              <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              KES {Number.parseFloat(stats?.weekTotal || "0").toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.weekCount || 0} contributions
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="This Week"
+          value={`KES ${Number.parseFloat(stats?.weekTotal || "0").toLocaleString()}`}
+          icon={TrendingUp}
+          color="emerald"
+          trend={weekTrend}
+          subtitle={`${stats?.weekCount || 0} contributions`}
+        />
 
-        <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-400">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
-              <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              KES {Number.parseFloat(stats?.monthTotal || "0").toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.monthCount || 0} contributions
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="This Month"
+          value={`KES ${Number.parseFloat(stats?.monthTotal || "0").toLocaleString()}`}
+          icon={DollarSign}
+          color="blue"
+          trend={monthTrend}
+          subtitle={`${stats?.monthCount || 0} contributions`}
+        />
 
-        <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-400">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
-              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              KES {Number.parseFloat(stats?.totalAmount || "0").toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.totalCount || 0} contributions
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total"
+          value={`KES ${Number.parseFloat(stats?.totalAmount || "0").toLocaleString()}`}
+          icon={Users}
+          color="purple"
+          subtitle={`${stats?.totalCount || 0} contributions`}
+        />
       </div>
 
       {/* Recent Contributions */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Contributions</CardTitle>
-          <CardDescription>Latest completed contributions</CardDescription>
+          <CardDescription>Latest contributions with status</CardDescription>
         </CardHeader>
         <CardContent>
           {recentLoading ? (
@@ -162,56 +201,63 @@ function AdminDashboardContent() {
             </div>
           ) : (
             <>
-            {/* Mobile card view */}
-            <div className="space-y-3 md:hidden">
-              {recentContributions.map((contribution) => (
-                <div key={contribution.id} className="border rounded-lg p-3 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="font-medium text-sm">{contribution.member.fullName}</div>
+              {/* Mobile card view */}
+              <div className="space-y-3 md:hidden">
+                {recentContributions.map((contribution) => (
+                  <div key={contribution.id} className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-sm">{contribution.member.fullName}</div>
+                      <StatusBadge status={contribution.status} />
+                    </div>
                     <div className="text-xs text-muted-foreground">{contribution.category.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(contribution.transactionDate).toLocaleDateString()}
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(contribution.transactionDate).toLocaleDateString()}
+                      </div>
+                      <div className="font-semibold text-sm">
+                        KES {Number.parseFloat(contribution.amount).toLocaleString()}
+                      </div>
                     </div>
                   </div>
-                  <div className="font-semibold text-sm">
-                    KES {Number.parseFloat(contribution.amount).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Desktop table view */}
-            <div className="overflow-x-auto hidden md:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2 font-medium text-sm">Date</th>
-                    <th className="text-left p-2 font-medium text-sm">Member</th>
-                    <th className="text-left p-2 font-medium text-sm">Department</th>
-                    <th className="text-right p-2 font-medium text-sm">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentContributions.map((contribution) => (
-                    <tr key={contribution.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                      <td className="p-2 text-sm">
-                        {new Date(contribution.transactionDate).toLocaleDateString()}
-                      </td>
-                      <td className="p-2 text-sm">
-                        <div>{contribution.member.fullName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {contribution.member.phoneNumber}
-                        </div>
-                      </td>
-                      <td className="p-2 text-sm">{contribution.category.name}</td>
-                      <td className="p-2 text-sm text-right font-semibold">
-                        KES {Number.parseFloat(contribution.amount).toLocaleString()}
-                      </td>
+              {/* Desktop table view */}
+              <div className="overflow-x-auto hidden md:block">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium text-sm">Date</th>
+                      <th className="text-left p-3 font-medium text-sm">Member</th>
+                      <th className="text-left p-3 font-medium text-sm">Department</th>
+                      <th className="text-right p-3 font-medium text-sm">Amount</th>
+                      <th className="text-center p-3 font-medium text-sm">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {recentContributions.map((contribution) => (
+                      <tr key={contribution.id} className="border-b hover:bg-muted/50 transition-colors h-12">
+                        <td className="p-3 text-sm">
+                          {new Date(contribution.transactionDate).toLocaleDateString()}
+                        </td>
+                        <td className="p-3 text-sm">
+                          <div className="font-medium">{contribution.member.fullName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {contribution.member.phoneNumber}
+                          </div>
+                        </td>
+                        <td className="p-3 text-sm">{contribution.category.name}</td>
+                        <td className="p-3 text-sm text-right font-semibold">
+                          KES {Number.parseFloat(contribution.amount).toLocaleString()}
+                        </td>
+                        <td className="p-3 text-center">
+                          <StatusBadge status={contribution.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </CardContent>

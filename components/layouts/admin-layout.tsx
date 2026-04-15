@@ -76,29 +76,29 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Determine role badge
   const getRoleBadge = () => {
     if (isStaff) {
-      return { 
-        text: "Staff Admin", 
+      return {
+        text: "Staff Admin",
         color: "bg-gradient-to-r from-purple-50 to-purple-100 text-purple-800 dark:from-purple-900 dark:to-purple-800 dark:text-purple-100",
         icon: "bg-purple-600"
       };
     }
     if (isContentAdmin) {
-      return { 
-        text: "Content Admin", 
+      return {
+        text: "Content Admin",
         color: "bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-800 dark:from-indigo-900 dark:to-indigo-800 dark:text-indigo-100",
         icon: "bg-indigo-600"
       };
     }
     if (isCategoryAdmin) {
-      return { 
-        text: "Department Admin", 
+      return {
+        text: "Department Admin",
         color: "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-100",
         icon: "bg-blue-600"
       };
     }
     if (isGroupAdmin) {
-      return { 
-        text: "Group Admin", 
+      return {
+        text: "Group Admin",
         color: "bg-gradient-to-r from-teal-50 to-emerald-100 text-teal-800 dark:from-teal-900 dark:to-emerald-800 dark:text-teal-100",
         icon: "bg-gradient-to-r from-teal-600 to-emerald-600"
       };
@@ -156,20 +156,30 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Department Admin Scope Indicator */}
           {isCategoryAdmin && !isStaff && adminCategories.length > 0 && (
-            <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
+            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-blue-100 dark:border-blue-800">
               <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300 mb-2">
                 <FolderKey className="h-3 w-3" />
                 <span className="font-medium">Your Departments:</span>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {adminCategories.map((cat) => (
-                  <span
-                    key={cat.id}
-                    className="inline-block px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded"
-                  >
-                    {cat.name}
-                  </span>
-                ))}
+              <div className="flex flex-wrap gap-1.5">
+                {adminCategories.map((cat, idx) => {
+                  const colors = [
+                    { bg: 'bg-gradient-to-r from-teal-100 to-teal-50', text: 'text-teal-800', dark: 'dark:from-teal-900/30 dark:to-teal-800/20 dark:text-teal-300' },
+                    { bg: 'bg-gradient-to-r from-emerald-100 to-emerald-50', text: 'text-emerald-800', dark: 'dark:from-emerald-900/30 dark:to-emerald-800/20 dark:text-emerald-300' },
+                    { bg: 'bg-gradient-to-r from-blue-100 to-blue-50', text: 'text-blue-800', dark: 'dark:from-blue-900/30 dark:to-blue-800/20 dark:text-blue-300' },
+                    { bg: 'bg-gradient-to-r from-purple-100 to-purple-50', text: 'text-purple-800', dark: 'dark:from-purple-900/30 dark:to-purple-800/20 dark:text-purple-300' },
+                  ];
+                  const color = colors[idx % colors.length];
+
+                  return (
+                    <span
+                      key={cat.id}
+                      className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${color.bg} ${color.text} ${color.dark}`}
+                    >
+                      {cat.name}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
