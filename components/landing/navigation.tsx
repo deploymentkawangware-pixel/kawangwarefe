@@ -62,7 +62,11 @@ export function Navigation() {
             {navLinks.map((link) => {
               const Icon = link.icon;
               return link.highlight ? (
-                <Button key={link.href} asChild>
+                <Button
+                  key={link.href}
+                  asChild
+                  className="h-11 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                >
                   <Link href={link.href}>
                     <Icon className="w-4 h-4 mr-2" />
                     {link.label}
@@ -105,7 +109,17 @@ export function Navigation() {
           <div className="md:hidden py-4 space-y-2 border-t">
             {navLinks.map((link) => {
               const Icon = link.icon;
-              return (
+              return link.highlight ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md transition-colors bg-gradient-to-r from-teal-600 to-emerald-600 text-white"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              ) : (
                 <Link
                   key={link.href}
                   href={link.href}

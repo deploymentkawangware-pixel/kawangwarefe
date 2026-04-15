@@ -76,16 +76,32 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Determine role badge
   const getRoleBadge = () => {
     if (isStaff) {
-      return { text: "Staff Admin", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100" };
+      return { 
+        text: "Staff Admin", 
+        color: "bg-gradient-to-r from-purple-50 to-purple-100 text-purple-800 dark:from-purple-900 dark:to-purple-800 dark:text-purple-100",
+        icon: "bg-purple-600"
+      };
     }
     if (isContentAdmin) {
-      return { text: "Content Admin", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100" };
+      return { 
+        text: "Content Admin", 
+        color: "bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-800 dark:from-indigo-900 dark:to-indigo-800 dark:text-indigo-100",
+        icon: "bg-indigo-600"
+      };
     }
     if (isCategoryAdmin) {
-      return { text: "Department Admin", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" };
+      return { 
+        text: "Department Admin", 
+        color: "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-100",
+        icon: "bg-blue-600"
+      };
     }
     if (isGroupAdmin) {
-      return { text: "Group Admin", color: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100" };
+      return { 
+        text: "Group Admin", 
+        color: "bg-gradient-to-r from-teal-50 to-emerald-100 text-teal-800 dark:from-teal-900 dark:to-emerald-800 dark:text-teal-100",
+        icon: "bg-gradient-to-r from-teal-600 to-emerald-600"
+      };
     }
     return null;
   };
@@ -170,16 +186,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   <Button
                     key={item.name}
                     variant={isActive ? "secondary" : "ghost"}
-                    className={`w-full justify-start transition-all ${isActive
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "hover:bg-muted"
-                      }`}
+                    className={`w-full justify-start transition-all relative ${
+                      isActive
+                        ? "bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/30 text-teal-900 dark:text-emerald-100 font-semibold"
+                        : "hover:bg-muted text-foreground"
+                    }`}
                     onClick={() => {
                       router.push(item.href);
                       setSidebarOpen(false);
                     }}
                   >
-                    <Icon className="h-4 w-4 mr-3" />
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-teal-600 to-emerald-600" />
+                    )}
+                    <Icon className={`h-4 w-4 mr-3 ${isActive ? "text-teal-600 dark:text-emerald-400" : ""}`} />
                     {item.name}
                   </Button>
                 );
@@ -215,7 +235,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
+                className="lg:hidden h-10 w-10"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
@@ -224,14 +244,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="hidden sm:flex h-10"
                   onClick={() => router.push("/dashboard")}
                 >
                   Member View
                 </Button>
                 <Button
+                  variant="outline"
+                  size="icon"
+                  className="sm:hidden h-10 w-10"
+                  onClick={() => router.push("/dashboard")}
+                  title="Member View"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+                <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="lg:hidden h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleLogout}
                   title="Logout"
                 >
