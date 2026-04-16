@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Heart, Calendar, Video, MoreHorizontal, BookOpen, Bell, LogIn, LayoutDashboard, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const primaryLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -41,6 +42,13 @@ export function BottomNav() {
               <button onClick={() => setMoreOpen(false)} className="p-2">
                 <X className="h-4 w-4" />
               </button>
+            </div>
+            {/* Theme Toggle in More Menu */}
+            <div className="px-4 py-3 rounded-lg border border-border bg-muted/50">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Theme</span>
+                <ThemeToggle variant="button" size="icon" />
+              </div>
             </div>
             {moreLinks.map((link) => {
               const Icon = link.icon;

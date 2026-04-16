@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   LayoutDashboard,
   DollarSign,
@@ -268,6 +269,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 >
                   <Users className="h-5 w-5" />
                 </Button>
+                {/* Theme Toggle */}
+                <ThemeToggle variant="button" size="icon-mobile" />
                 <Button
                   variant="ghost"
                   size="icon-mobile"

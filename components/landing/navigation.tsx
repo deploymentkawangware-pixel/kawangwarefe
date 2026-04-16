@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Heart, Home, BookOpen, Calendar, LogIn, LayoutDashboard, LogOut, Bell, Video } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth/auth-context";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BottomNav } from "@/components/layouts/bottom-nav";
 import toast from "react-hot-toast";
 
@@ -92,16 +93,22 @@ export function Navigation() {
                 Logout
               </button>
             )}
+            {/* Theme Toggle */}
+            <div className="h-9 w-px bg-border mx-2" />
+            <ThemeToggle variant="button" size="icon" />
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-3"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile Menu Button + Theme Toggle */}
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle variant="button" size="icon" />
+            <button
+              className="p-3"
+              onClick={() => setIsOpen(!isOpen)}
+              aria-label="Toggle menu"
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}

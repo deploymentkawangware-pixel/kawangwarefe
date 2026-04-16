@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { ApolloWrapper } from "@/lib/graphql/apollo-client";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { StructuredData } from "@/components/seo/structured-data";
 import { UpdatePrompt } from "@/components/pwa/update-prompt";
 import "./globals.css";
@@ -99,10 +100,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ApolloWrapper>
-          <AuthProvider>
-            {children}
-            <Toaster
+        <ThemeProvider>
+          <ApolloWrapper>
+            <AuthProvider>
+              {children}
+              <Toaster
               position="bottom-center"
               toastOptions={{
                 duration: 4000,
@@ -128,7 +130,8 @@ export default function RootLayout({
               }}
             />
           </AuthProvider>
-        </ApolloWrapper>
+          </ApolloWrapper>
+        </ThemeProvider>
         <footer className="w-full py-3 pb-16 md:pb-3 text-center text-xs text-muted-foreground border-t bg-background/95">
           Powered by{" "}
           <a
