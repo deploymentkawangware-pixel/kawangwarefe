@@ -4,12 +4,19 @@ import { useRouter } from "next/navigation";
 import { ContributionForm } from "@/components/forms/contribution-form";
 import { Navigation } from "@/components/landing/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useTour } from "@/hooks/use-tour";
+import { CONTRIBUTION_FLOW_TOUR_CONFIG } from "@/lib/tours/tour-configs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, HelpCircle } from "lucide-react";
 
 export default function ContributePage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const { start: startContributionTour } = useTour({
+    tourKey: "contribution_flow",
+    steps: CONTRIBUTION_FLOW_TOUR_CONFIG.steps || [],
+    autoStart: false,
+  });
 
   const handleSuccess = (data: any) => {
     // Redirect to confirmation page with contribution details
@@ -75,8 +82,21 @@ export default function ContributePage() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-2xl mx-auto space-y-6">
+          {/* Help button */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => startContributionTour()}
+              title="View contribution guide"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              How to Contribute
+            </Button>
+          </div>
+
           {/* Contribution Form */}
-          <div className="animate-slide-up">
+          <div data-tour="contribution-form" className="animate-slide-up">
             <ContributionForm onSuccess={handleSuccess} />
           </div>
 

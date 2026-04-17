@@ -9,9 +9,13 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import { useQuery } from "@apollo/client/react";
 import { GET_DASHBOARD_STATS, GET_ALL_CONTRIBUTIONS } from "@/lib/graphql/admin-queries";
+import { useTour } from "@/hooks/use-tour";
+import { ADMIN_DASHBOARD_TOUR_CONFIG } from "@/lib/tours/tour-configs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { DollarSign, TrendingUp, Users, Calendar, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, Users, Calendar, Loader2, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 interface DashboardStats {
   todayTotal: string;
@@ -120,8 +124,22 @@ function AdminDashboardContent() {
     },
   });
 
+  const { start: startAdminTour, isReady } = useTour({
+    tourKey: "admin_dashboard",
+    steps: ADMIN_DASHBOARD_TOUR_CONFIG.steps || [],
+    autoStart: false,
+  });
+
   const stats = statsData?.dashboardStats;
   const recentContributions = recentData?.allContributions?.items || [];
+
+  // Auto-start admin tour if new admin (optional)
+  useEffect(() => {
+    if (isReady) {
+      // Auto-start disabled - uncomment line below to enable
+      // startAdminTour();
+    }
+  }, [isReady, startAdminTour]);
 
   if (statsLoading) {
     return (
@@ -139,15 +157,26 @@ function AdminDashboardContent() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
-        <p className="text-muted-foreground">
-          View statistics and recent activity
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
+          <p className="text-muted-foreground">
+            View statistics and recent activity
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => startAdminTour()}
+          title="View admin guide"
+        >
+          <HelpCircle className="w-4 h-4 mr-2" />
+          <span className="hidden sm:inline">Tour</span>
+        </Button>
       </div>
 
       {/* Stats Grid - Using new StatCard component */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="admin-stats" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Today"
           value={`KES ${Number.parseFloat(stats?.todayTotal || "0").toLocaleString()}`}
@@ -190,7 +219,7 @@ function AdminDashboardContent() {
           <CardTitle>Recent Contributions</CardTitle>
           <CardDescription>Latest contributions with status</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent data-tour="admin-contributions">
           {recentLoading ? (
             <div className="text-center py-8 text-muted-foreground">
               Loading recent contributions...
@@ -264,7 +293,7 @@ function AdminDashboardContent() {
       </Card>
 
       {/* Member Stats */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div data-tour="admin-members" className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Members</CardTitle>

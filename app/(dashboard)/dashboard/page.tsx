@@ -14,11 +14,14 @@ import { GET_MY_CONTRIBUTIONS } from "@/lib/graphql/queries";
 import { GET_DASHBOARD_STATS } from "@/lib/graphql/admin-queries";
 import { useMyCategoryAdminRoles } from "@/lib/hooks/use-category-admin";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { useTour } from "@/hooks/use-tour";
+import { WELCOME_TOUR_CONFIG } from "@/lib/tours/tour-configs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper, Heart } from "lucide-react";
+import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper, Heart, HelpCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 interface Contribution {
   id: string;
@@ -50,6 +53,11 @@ interface DashboardStatsData {
 function DashboardContent() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { start: startWelcomeTour, isReady } = useTour({
+    tourKey: "welcome_tour",
+    steps: WELCOME_TOUR_CONFIG.steps || [],
+    autoStart: false,
+  });
 
   const { data, loading, error } = useQuery<ContributionsData>(GET_MY_CONTRIBUTIONS, {
     variables: {
@@ -72,7 +80,19 @@ function DashboardContent() {
   // Check if user has content admin role
   const { isContentAdmin } = useUserRole();
 
+  // Calculate contributions early for useEffect dependency
   const contributions = data?.myContributions || [];
+
+  // Auto-start welcome tour for new users (optional - remove if not wanted)
+  useEffect(() => {
+    if (isReady && contributions.length === 0) {
+      // Auto-start for new users with no contributions
+      const timer = setTimeout(() => {
+        startWelcomeTour();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isReady, contributions.length, startWelcomeTour]);
 
   // Calculate summary stats
   const totalContributions = contributions
@@ -102,7 +122,7 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+      <header data-tour="dashboard-header" className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -135,6 +155,7 @@ function DashboardContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => router.push("/contribute")}
+                data-tour="dashboard-contribute-btn"
               >
                 <Heart className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Make Contribution</span>
@@ -147,6 +168,15 @@ function DashboardContent() {
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Logout</span>
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => startWelcomeTour()}
+                title="View welcome guide"
+              >
+                <HelpCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Guide</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -155,7 +185,7 @@ function DashboardContent() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
         {/* Summary Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div data-tour="dashboard-stats" className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Contributions</CardTitle>
@@ -248,7 +278,7 @@ function DashboardContent() {
               View all your past contributions and their status
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent data-tour="dashboard-history">
             {loading && (
               <div className="text-center py-8 text-muted-foreground">
                 Loading contributions...
