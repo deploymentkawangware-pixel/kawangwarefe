@@ -87,18 +87,17 @@ export function useTour({
       overlayOpacity: 0.5,
       stagePadding: 10,
       steps: driverSteps,
-      onDestroyStarted: async () => {
-        // Mark as complete when tour is destroyed (finished or closed)
-        try {
-          await markComplete({
-            variables: {
-              tutorialKey: tourKey,
-              completed: true,
-            },
-          });
-        } catch (error) {
+      onDestroyStarted: () => {
+        // Fire mutation but don't wait for it (non-blocking)
+        // This allows the tour to close immediately
+        markComplete({
+          variables: {
+            tutorialKey: tourKey,
+            completed: true,
+          },
+        }).catch((error) => {
           console.warn(`Failed to mark tutorial '${tourKey}' as complete:`, error);
-        }
+        });
       },
     };
 

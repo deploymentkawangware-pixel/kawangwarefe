@@ -261,6 +261,12 @@
   @apply rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:active:bg-blue-800;
 }
 
+/* Finish/Done button - primary action (final step) */
+.driver-popover-finish-btn,
+.driver-button-finish {
+  @apply rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:active:bg-blue-800;
+}
+
 /* Previous/Back button - secondary action */
 .driver-popover-prev-btn,
 .driver-button-prev {
@@ -304,6 +310,8 @@
 
   .driver-popover-next-btn,
   .driver-button-next,
+  .driver-popover-finish-btn,
+  .driver-button-finish,
   .driver-popover-prev-btn,
   .driver-button-prev {
     @apply px-2 py-1 text-xs;
