@@ -74,7 +74,7 @@ export function CategoryAmountRow({
   const { data: purposeData } = useQuery<DepartmentPurposesData>(
     GET_DEPARTMENT_PURPOSES,
     {
-      variables: { categoryId: value.categoryId },
+      variables: { categoryId: value.categoryId, isActive: true },
       skip: !value.categoryId || !requiresPurpose,
     }
   );

@@ -4,7 +4,7 @@ export const CREATE_DEPARTMENT_PURPOSE = gql`
   mutation CreateDepartmentPurpose(
     $categoryId: ID!
     $name: String!
-    $code: String!
+    $code: String
     $description: String
   ) {
     createDepartmentPurpose(

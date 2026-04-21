@@ -30,8 +30,8 @@ export const GET_CONTRIBUTION_CATEGORIES = gql`
  * Get active purposes for a department/category.
  */
 export const GET_DEPARTMENT_PURPOSES = gql`
-  query GetDepartmentPurposes($categoryId: ID!) {
-    departmentPurposes(categoryId: $categoryId, isActive: true) {
+  query GetDepartmentPurposes($categoryId: ID!, $isActive: Boolean) {
+    departmentPurposes(categoryId: $categoryId, isActive: $isActive) {
       id
       name
       code

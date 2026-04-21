@@ -89,6 +89,18 @@ describe('MultiCategorySelector', () => {
       })
     })
 
+    it('still shows "Add Another Department" when all department options are already used but max not reached', async () => {
+      const contribs = [
+        makeCategoryAmount({ categoryId: 'cat-1', amount: '100' }),
+        makeCategoryAmount({ categoryId: 'cat-2', amount: '200' }),
+        makeCategoryAmount({ categoryId: 'cat-3', amount: '300' }),
+      ]
+      renderSelector({ contributions: contribs, maxCategories: 5 })
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /add another department/i })).toBeInTheDocument()
+      })
+    })
+
     it('hides "Add Another Department" button when at maxCategories limit', async () => {
       const contribs = [makeCategoryAmount(), makeCategoryAmount(), makeCategoryAmount()]
       renderSelector({ contributions: contribs, maxCategories: 3 })

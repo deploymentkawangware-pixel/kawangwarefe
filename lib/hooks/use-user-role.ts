@@ -107,14 +107,14 @@ export function useUserRole() {
         return feature === "content";
       }
 
-      // Category admins can only access overview and contributions
+      // Category admins can access overview, contributions, and scoped reports
       if (roleInfo.isCategoryAdmin) {
-        return feature === "overview" || feature === "contributions";
+        return feature === "overview" || feature === "contributions" || feature === "reports";
       }
 
-      // Group admins can access overview and their scoped contributions
+      // Group admins can access overview, their scoped contributions, and scoped reports
       if (roleInfo.isGroupAdmin) {
-        return feature === "overview" || feature === "contributions";
+        return feature === "overview" || feature === "contributions" || feature === "reports";
       }
 
       return false;

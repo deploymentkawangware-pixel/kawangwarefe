@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GENERATE_CONTRIBUTION_REPORT } from "@/lib/graphql/mutations";
-import { GET_CONTRIBUTION_CATEGORIES } from "@/lib/graphql/queries";
+import { GET_CONTRIBUTION_CATEGORIES, GET_DEPARTMENT_PURPOSES } from "@/lib/graphql/queries";
 import { GET_DEPARTMENT_ROUTING_REPORT } from "@/lib/graphql/admin-queries";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import { AdminProtectedRoute } from "@/components/auth/admin-protected-route";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Download, FileText, Table as TableIcon, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
@@ -31,6 +32,16 @@ interface Category {
 
 interface CategoriesData {
   contributionCategories: Category[];
+}
+
+interface Purpose {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface PurposesData {
+  departmentPurposes: Purpose[];
 }
 
 interface ReportResponse {
@@ -94,14 +105,28 @@ interface DepartmentRoutingReportData {
 }
 
 function ReportsPageContent() {
+  const { isStaff, isCategoryAdmin, adminCategoryIds } = useUserRole();
   const [reportType, setReportType] = useState<string>("daily");
   const [format, setFormat] = useState<string>("excel");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [analyticsCategoryId, setAnalyticsCategoryId] = useState<string>("all");
+  const [analyticsPurposeId, setAnalyticsPurposeId] = useState<string>("all");
+  const [analyticsGroupId, setAnalyticsGroupId] = useState<string>("all");
 
   const { data: categoriesData } = useQuery<CategoriesData>(GET_CONTRIBUTION_CATEGORIES);
-  const categories = categoriesData?.contributionCategories || [];
+  const allCategories = categoriesData?.contributionCategories || [];
+  const categories = isCategoryAdmin && !isStaff
+    ? allCategories.filter((category) => adminCategoryIds.includes(category.id))
+    : allCategories;
+
+  const selectedAnalyticsCategoryId = analyticsCategoryId === "all" ? undefined : analyticsCategoryId;
+  const { data: purposesData } = useQuery<PurposesData>(GET_DEPARTMENT_PURPOSES, {
+    variables: { categoryId: selectedAnalyticsCategoryId, isActive: null },
+    skip: !selectedAnalyticsCategoryId,
+  });
+  const analyticsPurposes = purposesData?.departmentPurposes || [];
 
   const customDateFrom = reportType === "custom" && dateFrom
     ? new Date(dateFrom).toISOString()
@@ -110,6 +135,10 @@ function ReportsPageContent() {
     ? new Date(dateTo).toISOString()
     : null;
 
+  const selectedExportCategoryIds = selectedCategoryIds.length > 0
+    ? selectedCategoryIds
+    : (analyticsCategoryId !== "all" ? [analyticsCategoryId] : []);
+
   const {
     data: routingReportData,
     loading: routingReportLoading,
@@ -117,6 +146,9 @@ function ReportsPageContent() {
     variables: {
       dateFrom: customDateFrom,
       dateTo: customDateTo,
+      categoryId: selectedAnalyticsCategoryId,
+      purposeId: analyticsPurposeId === "all" ? null : analyticsPurposeId,
+      groupId: analyticsGroupId === "all" ? null : analyticsGroupId,
     },
   });
 
@@ -181,13 +213,29 @@ function ReportsPageContent() {
         reportType,
         dateFrom: customDateFrom,
         dateTo: customDateTo,
-        categoryIds: selectedCategoryIds.length > 0 ? selectedCategoryIds.map((id) => Number.parseInt(id)) : null,
+        categoryIds: selectedExportCategoryIds.length > 0
+          ? selectedExportCategoryIds.map((id) => Number.parseInt(id, 10))
+          : null,
+        purposeId: analyticsPurposeId === "all" ? null : Number.parseInt(analyticsPurposeId, 10),
+        groupId: analyticsGroupId === "all" ? null : Number.parseInt(analyticsGroupId, 10),
         memberId: null, // Can be added later if needed
       },
     });
   };
 
   const routingSummary = routingReportData?.departmentRoutingReport?.summary;
+  const allDepartmentBreakdown = routingReportData?.departmentRoutingReport?.byDepartment || [];
+  const allPurposeBreakdown = routingReportData?.departmentRoutingReport?.byDepartmentPurpose || [];
+  const allGroupBreakdown = routingReportData?.departmentRoutingReport?.byDepartmentGroup || [];
+  const analyticsGroups = allGroupBreakdown
+    .filter((row) => row.groupId)
+    .reduce<Array<{ id: string; name: string }>>((acc, row) => {
+      if (!row.groupId || acc.some((group) => group.id === row.groupId)) {
+        return acc;
+      }
+      acc.push({ id: row.groupId, name: row.groupName });
+      return acc;
+    }, []);
   const topDepartments = (routingReportData?.departmentRoutingReport?.byDepartment || []).slice(0, 5);
   const topPurposeBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentPurpose || []).slice(0, 5);
   const topGroupBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentGroup || []).slice(0, 5);
@@ -202,6 +250,7 @@ function ReportsPageContent() {
         </div>
 
         {/* Report Configuration */}
+        {isStaff && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -363,8 +412,10 @@ function ReportsPageContent() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Quick Report Actions */}
+        {isStaff && (
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             onClick={() => {
@@ -429,6 +480,7 @@ function ReportsPageContent() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Department Routing Analytics */}
         <Card>
@@ -439,6 +491,76 @@ function ReportsPageContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="analytics-department">Department</Label>
+                <Select
+                  value={analyticsCategoryId}
+                  onValueChange={(value) => {
+                    setAnalyticsCategoryId(value);
+                    setAnalyticsPurposeId("all");
+                    setAnalyticsGroupId("all");
+                  }}
+                >
+                  <SelectTrigger id="analytics-department">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="analytics-purpose">Purpose</Label>
+                <Select
+                  value={analyticsPurposeId}
+                  onValueChange={(value) => {
+                    setAnalyticsPurposeId(value);
+                    setAnalyticsGroupId("all");
+                  }}
+                  disabled={!selectedAnalyticsCategoryId}
+                >
+                  <SelectTrigger id="analytics-purpose">
+                    <SelectValue placeholder={selectedAnalyticsCategoryId ? "All Purposes" : "Select department first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Purposes</SelectItem>
+                    {analyticsPurposes.map((purpose) => (
+                      <SelectItem key={purpose.id} value={purpose.id}>
+                        {purpose.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="analytics-group">Group</Label>
+                <Select
+                  value={analyticsGroupId}
+                  onValueChange={setAnalyticsGroupId}
+                >
+                  <SelectTrigger id="analytics-group">
+                    <SelectValue placeholder="All Groups" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Groups</SelectItem>
+                    {analyticsGroups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {routingReportLoading && (
               <p className="text-sm text-muted-foreground">Loading routing analytics...</p>
             )}
@@ -517,6 +639,107 @@ function ReportsPageContent() {
                     </div>
                   </div>
                 </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Detailed Breakdowns</h3>
+
+                  <div className="rounded-md border">
+                    <div className="border-b px-4 py-3">
+                      <p className="text-sm font-medium">By Department ({allDepartmentBreakdown.length})</p>
+                    </div>
+                    <div className="max-h-64 overflow-auto">
+                      {allDepartmentBreakdown.length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-muted-foreground">No department data</p>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/40">
+                              <th className="px-4 py-2 text-left font-medium">Department</th>
+                              <th className="px-4 py-2 text-right font-medium">Amount</th>
+                              <th className="px-4 py-2 text-right font-medium">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allDepartmentBreakdown.map((row) => (
+                              <tr key={row.departmentId} className="border-b last:border-0">
+                                <td className="px-4 py-2">{row.departmentName}</td>
+                                <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border">
+                    <div className="border-b px-4 py-3">
+                      <p className="text-sm font-medium">By Purpose ({allPurposeBreakdown.length})</p>
+                    </div>
+                    <div className="max-h-64 overflow-auto">
+                      {allPurposeBreakdown.length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-muted-foreground">No purpose data</p>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/40">
+                              <th className="px-4 py-2 text-left font-medium">Department</th>
+                              <th className="px-4 py-2 text-left font-medium">Purpose</th>
+                              <th className="px-4 py-2 text-right font-medium">Amount</th>
+                              <th className="px-4 py-2 text-right font-medium">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allPurposeBreakdown.map((row) => (
+                              <tr key={`${row.departmentId}-${row.purposeId}`} className="border-b last:border-0">
+                                <td className="px-4 py-2">{row.departmentName}</td>
+                                <td className="px-4 py-2">{row.purposeName}</td>
+                                <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border">
+                    <div className="border-b px-4 py-3">
+                      <p className="text-sm font-medium">By Group ({allGroupBreakdown.length})</p>
+                    </div>
+                    <div className="max-h-64 overflow-auto">
+                      {allGroupBreakdown.length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-muted-foreground">No group data</p>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/40">
+                              <th className="px-4 py-2 text-left font-medium">Department</th>
+                              <th className="px-4 py-2 text-left font-medium">Group</th>
+                              <th className="px-4 py-2 text-right font-medium">Amount</th>
+                              <th className="px-4 py-2 text-right font-medium">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allGroupBreakdown.map((row, index) => {
+                              const groupKey = row.groupId || `top-${index}`;
+                              return (
+                                <tr key={`${row.departmentId}-${groupKey}`} className="border-b last:border-0">
+                                  <td className="px-4 py-2">{row.departmentName}</td>
+                                  <td className="px-4 py-2">{row.groupName}</td>
+                                  <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                  <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </CardContent>
@@ -528,7 +751,7 @@ function ReportsPageContent() {
 
 export default function ReportsPage() {
   return (
-    <AdminProtectedRoute requiredAccess="staff">
+    <AdminProtectedRoute requiredAccess="any-admin">
       <ReportsPageContent />
     </AdminProtectedRoute>
   );

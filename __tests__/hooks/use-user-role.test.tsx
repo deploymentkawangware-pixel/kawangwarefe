@@ -368,7 +368,7 @@ describe('useUserRole', () => {
       expect(result.current.isGroupAdmin).toBe(true)
     })
 
-    it('can access contributions and overview only', async () => {
+    it('can access contributions, overview, and reports', async () => {
       const { result } = renderHook(() => useUserRole(), {
         wrapper: makeWrapper([groupAdminMock]),
       })
@@ -376,7 +376,7 @@ describe('useUserRole', () => {
       expect(result.current.canAccessFeature('overview')).toBe(true)
       expect(result.current.canAccessFeature('contributions')).toBe(true)
       expect(result.current.canAccessFeature('members')).toBe(false)
-      expect(result.current.canAccessFeature('reports')).toBe(false)
+      expect(result.current.canAccessFeature('reports')).toBe(true)
       expect(result.current.canAccessFeature('categories')).toBe(false)
       expect(result.current.canAccessFeature('groups')).toBe(false)
       expect(result.current.canAccessFeature('content')).toBe(false)

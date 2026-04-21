@@ -43,10 +43,10 @@ const multiContributionSchema = z.object({
     .min(1, "Add at least one contribution")
     .refine(
       (contributions) => {
-        const categoryIds = contributions.map((c) => c.categoryId);
-        return new Set(categoryIds).size === categoryIds.length;
+        const uniqueKeys = contributions.map((c) => `${c.categoryId}::${c.purposeId || ""}`);
+        return new Set(uniqueKeys).size === uniqueKeys.length;
       },
-      { message: "Duplicate departments are not allowed" }
+      { message: "Duplicate department and purpose combinations are not allowed" }
     ),
 });
 

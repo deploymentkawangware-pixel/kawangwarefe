@@ -23,5 +23,9 @@ describe('mutations', () => {
   it('GENERATE_CONTRIBUTION_REPORT contains generateContributionReport operation', () => {
     const body = (GENERATE_CONTRIBUTION_REPORT as any).loc?.source?.body || ''
     expect(body).toContain('generateContributionReport')
+    expect(body).toContain('$purposeId: Int')
+    expect(body).toContain('$groupId: Int')
+    expect(body).toContain('purposeId: $purposeId')
+    expect(body).toContain('groupId: $groupId')
   })
 })

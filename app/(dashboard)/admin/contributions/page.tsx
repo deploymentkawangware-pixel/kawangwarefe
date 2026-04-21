@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { GET_ALL_CONTRIBUTIONS, GET_CONTRIBUTION_STATS, GET_GROUP_CONTRIBUTIONS, GET_MY_GROUP_NAMES } from "@/lib/graphql/admin-queries";
-import { GET_CONTRIBUTION_CATEGORIES } from "@/lib/graphql/queries";
+import { GET_CONTRIBUTION_CATEGORIES, GET_DEPARTMENT_PURPOSES } from "@/lib/graphql/queries";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ interface Contribution {
   status: string;
   transactionDate: string | null;
   notes: string | null;
+  routedGroupName?: string | null;
+  purposeName?: string | null;
   member: {
     id: string;
     fullName: string;
@@ -88,10 +90,21 @@ interface CategoriesData {
   contributionCategories: Category[];
 }
 
+interface Purpose {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface PurposesData {
+  departmentPurposes: Purpose[];
+}
+
 export default function ContributionsPage() {
   const { isStaff, isCategoryAdmin, isGroupAdmin } = useUserRole();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [purposeFilter, setPurposeFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -102,6 +115,13 @@ export default function ContributionsPage() {
   // Get categories
   const { data: categoriesData } = useQuery<CategoriesData>(GET_CONTRIBUTION_CATEGORIES);
   const categories = categoriesData?.contributionCategories || [];
+
+  const selectedCategoryId = categoryFilter === "all" ? undefined : categoryFilter;
+  const { data: purposesData } = useQuery<PurposesData>(GET_DEPARTMENT_PURPOSES, {
+    variables: { categoryId: selectedCategoryId, isActive: null },
+    skip: !selectedCategoryId,
+  });
+  const purposes = purposesData?.departmentPurposes || [];
 
   const { data: groupNamesData } = useQuery<GroupNamesData>(GET_MY_GROUP_NAMES, {
     skip: !isGroupAdmin,
@@ -115,6 +135,7 @@ export default function ContributionsPage() {
   const filters = {
     status: statusFilter === "all" ? null : statusFilter,
     categoryId: categoryFilter === "all" ? null : categoryFilter,
+    purposeId: purposeFilter === "all" ? null : purposeFilter,
     search: searchTerm || null,
     dateFrom: dateFrom ? new Date(dateFrom).toISOString() : null,
     dateTo: dateTo ? new Date(dateTo).toISOString() : null,
@@ -314,6 +335,7 @@ export default function ContributionsPage() {
                 <Label htmlFor="category">Department</Label>
                 <Select value={categoryFilter} onValueChange={(value) => {
                   setCategoryFilter(value);
+                  setPurposeFilter("all");
                   setPage(1);
                 }}>
                   <SelectTrigger id="category">
@@ -324,6 +346,31 @@ export default function ContributionsPage() {
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Purpose Filter */}
+              <div className="space-y-2">
+                <Label htmlFor="purpose">Purpose</Label>
+                <Select
+                  value={purposeFilter}
+                  onValueChange={(value) => {
+                    setPurposeFilter(value);
+                    setPage(1);
+                  }}
+                  disabled={!selectedCategoryId}
+                >
+                  <SelectTrigger id="purpose">
+                    <SelectValue placeholder={selectedCategoryId ? "All Purposes" : "Select department first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Purposes</SelectItem>
+                    {purposes.map((purpose) => (
+                      <SelectItem key={purpose.id} value={purpose.id}>
+                        {purpose.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -403,6 +450,7 @@ export default function ContributionsPage() {
                 onClick={() => {
                   setStatusFilter("all");
                   setCategoryFilter("all");
+                  setPurposeFilter("all");
                   setSearchTerm("");
                   setDateFrom("");
                   setDateTo("");
@@ -480,6 +528,13 @@ export default function ContributionsPage() {
                         <span className="font-mono">{contribution.mpesaTransaction.mpesaReceiptNumber}</span>
                       )}
                     </div>
+                    {(contribution.purposeName || contribution.routedGroupName) && (
+                      <div className="text-xs text-muted-foreground">
+                        {contribution.purposeName && <span>Purpose: {contribution.purposeName}</span>}
+                        {contribution.purposeName && contribution.routedGroupName && <span> • </span>}
+                        {contribution.routedGroupName && <span>Group: {contribution.routedGroupName}</span>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -493,6 +548,8 @@ export default function ContributionsPage() {
                       <th className="text-left p-3 font-medium">Member</th>
                       <th className="text-left p-3 font-medium">Phone</th>
                       <th className="text-left p-3 font-medium">Department</th>
+                      <th className="text-left p-3 font-medium">Purpose</th>
+                      <th className="text-left p-3 font-medium">Group</th>
                       <th className="text-right p-3 font-medium">Amount</th>
                       <th className="text-center p-3 font-medium">Status</th>
                       <th className="text-left p-3 font-medium">Receipt</th>
@@ -535,6 +592,12 @@ export default function ContributionsPage() {
                               {contribution.category.code}
                             </div>
                           </div>
+                        </td>
+                        <td className="p-3 text-sm">
+                          {contribution.purposeName || "Top-level"}
+                        </td>
+                        <td className="p-3 text-sm">
+                          {contribution.routedGroupName || "Top-level"}
                         </td>
                         <td className="p-3 text-sm text-right font-semibold">
                           KES {Number.parseFloat(contribution.amount).toLocaleString()}

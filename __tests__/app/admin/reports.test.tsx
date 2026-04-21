@@ -100,6 +100,7 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Department Routing Analytics')).toBeInTheDocument()
     expect(screen.getByText('Total Completed')).toBeInTheDocument()
     expect(screen.getByText('120 contributions')).toBeInTheDocument()
+    expect(screen.getAllByText('Group').length).toBeGreaterThan(0)
   })
 
   it('renders department filter checkboxes', () => {
@@ -111,5 +112,7 @@ describe('ReportsPage', () => {
   it('renders top departments breakdown', () => {
     render(<ReportsPage />)
     expect(screen.getByText('Top Departments')).toBeInTheDocument()
+    expect(screen.getByText('Detailed Breakdowns')).toBeInTheDocument()
+    expect(screen.getByText(/By Group/)).toBeInTheDocument()
   })
 })

@@ -49,18 +49,9 @@ export function MultiCategorySelector({
 
   const allCategories = data?.contributionCategories || [];
 
-  // Get selected category IDs
-  const selectedCategoryIds = new Set(
-    contributions.map((c) => c.categoryId).filter(Boolean)
-  );
-
-  // Filter available categories for each row
-  const getAvailableCategories = (currentCategoryId: string) => {
-    return allCategories.filter(
-      (cat) =>
-        cat.id === currentCategoryId || !selectedCategoryIds.has(cat.id)
-    );
-  };
+  // Keep all departments available per row to allow multi-purpose entries
+  // within the same department.
+  const getAvailableCategories = () => allCategories;
 
   const handleChange = (
     index: number,
@@ -90,8 +81,7 @@ export function MultiCategorySelector({
   };
 
   const canAddMore =
-    contributions.length < maxCategories &&
-    contributions.length < allCategories.length;
+    contributions.length < maxCategories;
 
   if (loading) {
     return (
@@ -111,7 +101,7 @@ export function MultiCategorySelector({
             value={contribution}
             onChange={handleChange}
             onRemove={handleRemove}
-            availableCategories={getAvailableCategories(contribution.categoryId)}
+            availableCategories={getAvailableCategories()}
             selectedCategory={allCategories.find((c) => c.id === contribution.categoryId)}
             canRemove={contributions.length > 1}
             errors={errors && errors[index] ? errors[index] : undefined}

@@ -20,6 +20,8 @@ export const GET_ALL_CONTRIBUTIONS = gql`
         status
         transactionDate
         notes
+        routedGroupName
+        purposeName
         member {
           id
           fullName
@@ -123,8 +125,20 @@ export const GET_MEMBERS_LIST = gql`
  * Get department routing analytics report.
  */
 export const GET_DEPARTMENT_ROUTING_REPORT = gql`
-  query GetDepartmentRoutingReport($dateFrom: DateTime, $dateTo: DateTime) {
-    departmentRoutingReport(dateFrom: $dateFrom, dateTo: $dateTo) {
+  query GetDepartmentRoutingReport(
+    $dateFrom: DateTime
+    $dateTo: DateTime
+    $categoryId: ID
+    $purposeId: ID
+    $groupId: ID
+  ) {
+    departmentRoutingReport(
+      dateFrom: $dateFrom
+      dateTo: $dateTo
+      categoryId: $categoryId
+      purposeId: $purposeId
+      groupId: $groupId
+    ) {
       summary {
         totalCompletedAmount
         totalCompletedCount

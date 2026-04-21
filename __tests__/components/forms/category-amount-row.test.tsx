@@ -31,7 +31,7 @@ const purposeMocks = [
   {
     request: {
       query: GET_DEPARTMENT_PURPOSES,
-      variables: { categoryId: 'cat-1' },
+      variables: { categoryId: 'cat-1', isActive: true },
     },
     result: {
       data: {

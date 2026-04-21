@@ -63,6 +63,8 @@ export const GENERATE_CONTRIBUTION_REPORT = gql`
     $dateTo: DateTime
     $categoryId: Int
     $categoryIds: [Int!]
+    $purposeId: Int
+    $groupId: Int
     $memberId: Int
   ) {
     generateContributionReport(
@@ -72,6 +74,8 @@ export const GENERATE_CONTRIBUTION_REPORT = gql`
       dateTo: $dateTo
       categoryId: $categoryId
       categoryIds: $categoryIds
+      purposeId: $purposeId
+      groupId: $groupId
       memberId: $memberId
     ) {
       success
