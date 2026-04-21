@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GENERATE_CONTRIBUTION_REPORT } from "@/lib/graphql/mutations";
 import { GET_CONTRIBUTION_CATEGORIES, GET_DEPARTMENT_PURPOSES } from "@/lib/graphql/queries";
@@ -114,6 +114,12 @@ function ReportsPageContent() {
   const [analyticsCategoryId, setAnalyticsCategoryId] = useState<string>("all");
   const [analyticsPurposeId, setAnalyticsPurposeId] = useState<string>("all");
   const [analyticsGroupId, setAnalyticsGroupId] = useState<string>("all");
+  const [analyticsRoutingType, setAnalyticsRoutingType] = useState<string>("all");
+  const [activeBreakdownTab, setActiveBreakdownTab] = useState<"department" | "purpose" | "group">("department");
+  const [breakdownSortBy, setBreakdownSortBy] = useState<"amount" | "count">("amount");
+  const [breakdownSortDirection, setBreakdownSortDirection] = useState<"desc" | "asc">("desc");
+  const [breakdownPage, setBreakdownPage] = useState<number>(1);
+  const [breakdownPageSize, setBreakdownPageSize] = useState<number>(10);
 
   const { data: categoriesData } = useQuery<CategoriesData>(GET_CONTRIBUTION_CATEGORIES);
   const allCategories = categoriesData?.contributionCategories || [];
@@ -149,6 +155,7 @@ function ReportsPageContent() {
       categoryId: selectedAnalyticsCategoryId,
       purposeId: analyticsPurposeId === "all" ? null : analyticsPurposeId,
       groupId: analyticsGroupId === "all" ? null : analyticsGroupId,
+      routingType: analyticsRoutingType === "all" ? null : analyticsRoutingType,
     },
   });
 
@@ -218,6 +225,7 @@ function ReportsPageContent() {
           : null,
         purposeId: analyticsPurposeId === "all" ? null : Number.parseInt(analyticsPurposeId, 10),
         groupId: analyticsGroupId === "all" ? null : Number.parseInt(analyticsGroupId, 10),
+        routingType: analyticsRoutingType === "all" ? null : analyticsRoutingType,
         memberId: null, // Can be added later if needed
       },
     });
@@ -239,6 +247,49 @@ function ReportsPageContent() {
   const topDepartments = (routingReportData?.departmentRoutingReport?.byDepartment || []).slice(0, 5);
   const topPurposeBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentPurpose || []).slice(0, 5);
   const topGroupBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentGroup || []).slice(0, 5);
+
+  const sortedDepartmentBreakdown = useMemo(() => {
+    const rows = [...allDepartmentBreakdown];
+    rows.sort((a, b) => {
+      const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
+      const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
+      return breakdownSortDirection === "desc" ? right - left : left - right;
+    });
+    return rows;
+  }, [allDepartmentBreakdown, breakdownSortBy, breakdownSortDirection]);
+
+  const sortedPurposeBreakdown = useMemo(() => {
+    const rows = [...allPurposeBreakdown];
+    rows.sort((a, b) => {
+      const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
+      const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
+      return breakdownSortDirection === "desc" ? right - left : left - right;
+    });
+    return rows;
+  }, [allPurposeBreakdown, breakdownSortBy, breakdownSortDirection]);
+
+  const sortedGroupBreakdown = useMemo(() => {
+    const rows = [...allGroupBreakdown];
+    rows.sort((a, b) => {
+      const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
+      const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
+      return breakdownSortDirection === "desc" ? right - left : left - right;
+    });
+    return rows;
+  }, [allGroupBreakdown, breakdownSortBy, breakdownSortDirection]);
+
+  const activeRowsCount = activeBreakdownTab === "department"
+    ? sortedDepartmentBreakdown.length
+    : activeBreakdownTab === "purpose"
+      ? sortedPurposeBreakdown.length
+      : sortedGroupBreakdown.length;
+  const totalBreakdownPages = Math.max(1, Math.ceil(activeRowsCount / breakdownPageSize));
+  const normalizedBreakdownPage = Math.min(breakdownPage, totalBreakdownPages);
+  const breakdownStart = (normalizedBreakdownPage - 1) * breakdownPageSize;
+  const breakdownEnd = breakdownStart + breakdownPageSize;
+  const pagedDepartmentBreakdown = sortedDepartmentBreakdown.slice(breakdownStart, breakdownEnd);
+  const pagedPurposeBreakdown = sortedPurposeBreakdown.slice(breakdownStart, breakdownEnd);
+  const pagedGroupBreakdown = sortedGroupBreakdown.slice(breakdownStart, breakdownEnd);
 
   return (
     <AdminLayout>
@@ -559,6 +610,24 @@ function ReportsPageContent() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="analytics-routing-type">Routing Type</Label>
+                <Select
+                  value={analyticsRoutingType}
+                  onValueChange={setAnalyticsRoutingType}
+                >
+                  <SelectTrigger id="analytics-routing-type">
+                    <SelectValue placeholder="All Routing Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Routing Types</SelectItem>
+                    <SelectItem value="GUEST_TOP_LEVEL">Guest Top-level</SelectItem>
+                    <SelectItem value="MEMBER_ROUTED">Member Routed to Group</SelectItem>
+                    <SelectItem value="MEMBER_TOP_LEVEL">Member Top-level</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {routingReportLoading && (
@@ -643,6 +712,126 @@ function ReportsPageContent() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Detailed Breakdowns</h3>
 
+                  <div className="flex flex-col gap-3 rounded-md border p-3">
+                    <p className="text-sm font-medium">Breakdown View</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={activeBreakdownTab === "department" ? "default" : "outline"}
+                        onClick={() => {
+                          setActiveBreakdownTab("department");
+                          setBreakdownPage(1);
+                        }}
+                      >
+                        Departments
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={activeBreakdownTab === "purpose" ? "default" : "outline"}
+                        onClick={() => {
+                          setActiveBreakdownTab("purpose");
+                          setBreakdownPage(1);
+                        }}
+                      >
+                        Purposes
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={activeBreakdownTab === "group" ? "default" : "outline"}
+                        onClick={() => {
+                          setActiveBreakdownTab("group");
+                          setBreakdownPage(1);
+                        }}
+                      >
+                        Groups
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <div className="space-y-1 md:col-span-1">
+                        <Label htmlFor="breakdown-sort-by">Sort By</Label>
+                        <Select
+                          value={breakdownSortBy}
+                          onValueChange={(value) => {
+                            setBreakdownSortBy(value as "amount" | "count");
+                            setBreakdownPage(1);
+                          }}
+                        >
+                          <SelectTrigger id="breakdown-sort-by">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="amount">Amount</SelectItem>
+                            <SelectItem value="count">Count</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1 md:col-span-1">
+                        <Label htmlFor="breakdown-sort-direction">Direction</Label>
+                        <Select
+                          value={breakdownSortDirection}
+                          onValueChange={(value) => {
+                            setBreakdownSortDirection(value as "desc" | "asc");
+                            setBreakdownPage(1);
+                          }}
+                        >
+                          <SelectTrigger id="breakdown-sort-direction">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="desc">Highest First</SelectItem>
+                            <SelectItem value="asc">Lowest First</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1 md:col-span-1">
+                        <Label htmlFor="breakdown-page-size">Rows Per Page</Label>
+                        <Select
+                          value={String(breakdownPageSize)}
+                          onValueChange={(value) => {
+                            setBreakdownPageSize(Number.parseInt(value, 10));
+                            setBreakdownPage(1);
+                          }}
+                        >
+                          <SelectTrigger id="breakdown-page-size">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="md:col-span-1 flex items-end justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setBreakdownPage((current) => Math.max(1, current - 1))}
+                          disabled={normalizedBreakdownPage <= 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setBreakdownPage((current) => Math.min(totalBreakdownPages, current + 1))}
+                          disabled={normalizedBreakdownPage >= totalBreakdownPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      Page {normalizedBreakdownPage} of {totalBreakdownPages} • {activeRowsCount} row(s)
+                    </p>
+                  </div>
+
+                  {activeBreakdownTab === "department" && (
                   <div className="rounded-md border">
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Department ({allDepartmentBreakdown.length})</p>
@@ -660,7 +849,7 @@ function ReportsPageContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {allDepartmentBreakdown.map((row) => (
+                            {pagedDepartmentBreakdown.map((row) => (
                               <tr key={row.departmentId} className="border-b last:border-0">
                                 <td className="px-4 py-2">{row.departmentName}</td>
                                 <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
@@ -672,7 +861,9 @@ function ReportsPageContent() {
                       )}
                     </div>
                   </div>
+                  )}
 
+                  {activeBreakdownTab === "purpose" && (
                   <div className="rounded-md border">
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Purpose ({allPurposeBreakdown.length})</p>
@@ -691,7 +882,7 @@ function ReportsPageContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {allPurposeBreakdown.map((row) => (
+                            {pagedPurposeBreakdown.map((row) => (
                               <tr key={`${row.departmentId}-${row.purposeId}`} className="border-b last:border-0">
                                 <td className="px-4 py-2">{row.departmentName}</td>
                                 <td className="px-4 py-2">{row.purposeName}</td>
@@ -704,7 +895,9 @@ function ReportsPageContent() {
                       )}
                     </div>
                   </div>
+                  )}
 
+                  {activeBreakdownTab === "group" && (
                   <div className="rounded-md border">
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Group ({allGroupBreakdown.length})</p>
@@ -723,8 +916,8 @@ function ReportsPageContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {allGroupBreakdown.map((row, index) => {
-                              const groupKey = row.groupId || `top-${index}`;
+                            {pagedGroupBreakdown.map((row, index) => {
+                              const groupKey = row.groupId || `top-${breakdownStart + index}`;
                               return (
                                 <tr key={`${row.departmentId}-${groupKey}`} className="border-b last:border-0">
                                   <td className="px-4 py-2">{row.departmentName}</td>
@@ -739,6 +932,7 @@ function ReportsPageContent() {
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               </>
             )}

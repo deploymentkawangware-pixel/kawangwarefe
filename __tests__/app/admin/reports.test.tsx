@@ -101,6 +101,7 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Total Completed')).toBeInTheDocument()
     expect(screen.getByText('120 contributions')).toBeInTheDocument()
     expect(screen.getAllByText('Group').length).toBeGreaterThan(0)
+    expect(screen.getByText('Routing Type')).toBeInTheDocument()
   })
 
   it('renders department filter checkboxes', () => {
@@ -113,6 +114,7 @@ describe('ReportsPage', () => {
     render(<ReportsPage />)
     expect(screen.getByText('Top Departments')).toBeInTheDocument()
     expect(screen.getByText('Detailed Breakdowns')).toBeInTheDocument()
-    expect(screen.getByText(/By Group/)).toBeInTheDocument()
+    expect(screen.getByText('Breakdown View')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Groups' })).toBeInTheDocument()
   })
 })

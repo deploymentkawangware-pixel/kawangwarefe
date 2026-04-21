@@ -65,6 +65,7 @@ export const GENERATE_CONTRIBUTION_REPORT = gql`
     $categoryIds: [Int!]
     $purposeId: Int
     $groupId: Int
+    $routingType: String
     $memberId: Int
   ) {
     generateContributionReport(
@@ -76,6 +77,7 @@ export const GENERATE_CONTRIBUTION_REPORT = gql`
       categoryIds: $categoryIds
       purposeId: $purposeId
       groupId: $groupId
+      routingType: $routingType
       memberId: $memberId
     ) {
       success

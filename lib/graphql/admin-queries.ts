@@ -131,6 +131,7 @@ export const GET_DEPARTMENT_ROUTING_REPORT = gql`
     $categoryId: ID
     $purposeId: ID
     $groupId: ID
+    $routingType: String
   ) {
     departmentRoutingReport(
       dateFrom: $dateFrom
@@ -138,6 +139,7 @@ export const GET_DEPARTMENT_ROUTING_REPORT = gql`
       categoryId: $categoryId
       purposeId: $purposeId
       groupId: $groupId
+      routingType: $routingType
     ) {
       summary {
         totalCompletedAmount
