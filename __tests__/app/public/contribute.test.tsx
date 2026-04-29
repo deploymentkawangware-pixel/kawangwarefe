@@ -22,8 +22,9 @@ import ContributePage from '@/app/(public)/contribute/page'
 
 describe('ContributePage', () => {
   it('renders the page with contribution form', () => {
-    render(<ContributePage />)
+    const { container } = render(<ContributePage />)
     expect(screen.getByTestId('contribution-form')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="contribution-form"]')).toBeInTheDocument()
   })
 
   it('renders page features', () => {

@@ -17,38 +17,38 @@ export const WELCOME_TOUR_CONFIG: Config = {
   stagePadding: 10,
   steps: [
     {
-      element: '[data-tour="header"]',
+      element: '[data-tour="dashboard-header"]',
       popover: {
         title: 'Welcome to Church Funds System',
-        description: 'Track contributions, manage giving, and stay connected with your church community.',
+        description: 'Your dashboard keeps track of giving activity, totals, and recent updates.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="stats-cards"]',
+      element: '[data-tour="dashboard-stats"]',
       popover: {
-        title: 'Dashboard Overview',
-        description: 'See your giving statistics at a glance: total contributions, this month\'s gifts, and transaction count.',
+        title: 'Giving Summary',
+        description: 'See your totals, monthly giving, and contribution status at a glance.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="new-contribution-btn"]',
+      element: '[data-tour="dashboard-snapshot"]',
       popover: {
-        title: 'Make a Contribution',
-        description: 'Click here to give financially to your church through M-Pesa or other payment methods.',
-        side: 'left',
+        title: 'Quick Actions',
+        description: 'Jump straight to totals or start a new contribution from here.',
+        side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="contribution-history"]',
+      element: '[data-tour="dashboard-history"]',
       popover: {
         title: 'Your Giving History',
         description: 'View all your past contributions with dates, amounts, and confirmation details.',
-        side: 'top',
+        side: 'bottom',
         align: 'center',
       },
     },
@@ -67,47 +67,47 @@ export const CONTRIBUTION_FLOW_TOUR_CONFIG: Config = {
   stagePadding: 10,
   steps: [
     {
+      element: '[data-tour="contribution-form"]',
+      popover: {
+        title: 'Contribution Form',
+        description: 'This form guides you through multi-department giving in a single M-Pesa prompt.',
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
       element: '[data-tour="contribution-header"]',
       popover: {
-        title: 'Make a Contribution',
-        description: 'You can give financially to different departments and causes within the church.',
+        title: 'Contribution Details',
+        description: 'Review the guidance for contributing across departments and purposes.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="category-selector"]',
+      element: '[data-tour="contribution-phone"]',
       popover: {
-        title: 'Choose a Department',
-        description: 'Select which church department or cause you want to contribute to. Each category supports different ministries.',
+        title: 'Confirm Phone',
+        description: 'Confirm the M-Pesa number that will receive the payment prompt.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="amount-input"]',
+      element: '[data-tour="contribution-categories"]',
       popover: {
-        title: 'Enter Amount',
-        description: 'Type the amount you wish to give in Kenya Shillings (KES). You can give any amount.',
-        side: 'left',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="payment-method"]',
-      popover: {
-        title: 'Payment Method',
-        description: 'Choose how you want to pay: M-Pesa or manual bank transfer. M-Pesa is instant and immediate.',
+        title: 'Select Departments',
+        description: 'Add one or more departments, purposes, and amounts for your contribution.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="contribute-btn"]',
+      element: '[data-tour="contribution-review-btn"]',
       popover: {
-        title: 'Complete Your Contribution',
-        description: 'Click "Contribute" to proceed with payment. You\'ll receive a confirmation after.',
-        side: 'top',
+        title: 'Review & Continue',
+        description: 'Review your selections before the M-Pesa prompt is sent.',
+        side: 'bottom',
         align: 'center',
       },
     },
@@ -129,7 +129,7 @@ export const ADMIN_DASHBOARD_TOUR_CONFIG: Config = {
       element: '[data-tour="admin-header"]',
       popover: {
         title: 'Admin Dashboard',
-        description: 'Welcome! This is your administrative hub for managing church finances and members.',
+        description: 'Your control center for finance, members, and activity insights.',
         side: 'bottom',
         align: 'center',
       },
@@ -138,44 +138,26 @@ export const ADMIN_DASHBOARD_TOUR_CONFIG: Config = {
       element: '[data-tour="admin-stats"]',
       popover: {
         title: 'Financial Overview',
-        description: 'View total contributions received, today\'s receipts, member count, and active contributions this month.',
+        description: 'Track daily, weekly, and monthly contribution totals with trends.',
         side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="contributions-table"]',
+      element: '[data-tour="admin-contributions"]',
       popover: {
-        title: 'Contribution Records',
-        description: 'Browse all contributions with member details, amounts, dates, and payment status. Use filters to search.',
-        side: 'top',
+        title: 'Recent Contributions',
+        description: 'Review the latest contributions and their statuses.',
+        side: 'bottom',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="admin-filters"]',
+      element: '[data-tour="admin-members"]',
       popover: {
-        title: 'Advanced Filtering',
-        description: 'Filter contributions by date range, category, member, or payment status. Export reports with the button below.',
-        side: 'left',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="member-mgmt-btn"]',
-      popover: {
-        title: 'Member Management',
-        description: 'Access the member management section to add, edit, or manage church member records and roles.',
-        side: 'left',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="reports-btn"]',
-      popover: {
-        title: 'Reports & Analytics',
-        description: 'Generate detailed reports about giving patterns, member activity, and financial summaries.',
-        side: 'left',
+        title: 'Member Snapshot',
+        description: 'Monitor member totals and quick stats for health checks.',
+        side: 'bottom',
         align: 'center',
       },
     },

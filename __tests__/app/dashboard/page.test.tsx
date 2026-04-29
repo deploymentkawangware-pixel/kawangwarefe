@@ -6,6 +6,9 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/dashboard',
 }))
+vi.mock('next/image', () => ({
+  default: ({ src, alt }: any) => React.createElement('img', { src, alt }),
+}))
 vi.mock('@apollo/client/react', () => ({
   useQuery: () => ({ data: null, loading: false, error: null, refetch: vi.fn() }),
   useMutation: () => [vi.fn(), { loading: false }],
@@ -31,8 +34,12 @@ import DashboardPage from '@/app/(dashboard)/dashboard/page'
 
 describe('DashboardPage', () => {
   it('renders the dashboard', () => {
-    render(<DashboardPage />)
+    const { container } = render(<DashboardPage />)
     // Should show welcome or dashboard content
     expect(screen.getAllByText(/Welcome|Dashboard|contribution/i).length).toBeGreaterThan(0)
+    expect(container.querySelector('[data-tour="dashboard-header"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="dashboard-stats"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="dashboard-snapshot"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="dashboard-history"]')).toBeInTheDocument()
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
@@ -82,14 +82,16 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Reports')).toBeInTheDocument()
   })
 
-  it('renders Generate Report section', () => {
+  it('renders Generate Report section in Exports mode', () => {
     render(<ReportsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Exports' }))
     expect(screen.getByText('Generate Report')).toBeInTheDocument()
     expect(screen.getByText(/Generate & Download Report/)).toBeInTheDocument()
   })
 
-  it('renders quick report action cards', () => {
+  it('renders quick report action cards in Exports mode', () => {
     render(<ReportsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Exports' }))
     expect(screen.getByText("Today's Report")).toBeInTheDocument()
     expect(screen.getByText('Weekly Report')).toBeInTheDocument()
     expect(screen.getByText('Monthly Report')).toBeInTheDocument()
@@ -100,21 +102,45 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Department Routing Analytics')).toBeInTheDocument()
     expect(screen.getByText('Total Completed')).toBeInTheDocument()
     expect(screen.getByText('120 contributions')).toBeInTheDocument()
-    expect(screen.getAllByText('Group').length).toBeGreaterThan(0)
-    expect(screen.getByText('Routing Type')).toBeInTheDocument()
+    expect(screen.getByText('Active Filters')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'More Filters' })).toBeInTheDocument()
   })
 
-  it('renders department filter checkboxes', () => {
+  it('renders primary analytics filters', () => {
     render(<ReportsPage />)
-    expect(screen.getByText('Filter by Departments (Optional)')).toBeInTheDocument()
-    expect(screen.getByText('All departments will be included')).toBeInTheDocument()
+    expect(screen.getByText('Department')).toBeInTheDocument()
+    expect(screen.getByText('Purpose')).toBeInTheDocument()
   })
 
-  it('renders top departments breakdown', () => {
+  it('renders detailed breakdown tools in Explore Data mode', () => {
     render(<ReportsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Explore Data' }))
     expect(screen.getByText('Top Departments')).toBeInTheDocument()
     expect(screen.getByText('Detailed Breakdowns')).toBeInTheDocument()
     expect(screen.getByText('Breakdown View')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Groups' })).toBeInTheDocument()
+  })
+
+  it('filters breakdown rows with search input', () => {
+    render(<ReportsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Explore Data' }))
+
+    const searchInput = screen.getByLabelText('Search Departments')
+    fireEvent.change(searchInput, { target: { value: 'Offer' } })
+
+    expect(screen.getByText('Page 1 of 1 • 1 row(s)')).toBeInTheDocument()
+  })
+
+  it('opens drill-down dialog when clicking a department row', () => {
+    render(<ReportsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Explore Data' }))
+
+    const sectionTitle = screen.getByText('By Department (2)')
+    const section = sectionTitle.closest('div')?.parentElement
+    const tableRow = section?.querySelector('tbody tr') as HTMLElement
+    fireEvent.click(tableRow)
+
+    expect(screen.getByText('Detailed breakdown by purpose')).toBeInTheDocument()
+    expect(screen.getByText('Top Purposes')).toBeInTheDocument()
   })
 })

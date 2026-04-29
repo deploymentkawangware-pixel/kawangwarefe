@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import { AdminProtectedRoute } from "@/components/auth/admin-protected-route";
 import { useUserRole } from "@/lib/hooks/use-user-role";
@@ -52,6 +53,30 @@ interface ReportResponse {
     filename: string | null;
     contentType: string | null;
   };
+}
+
+interface ExportRequestVariables {
+  format: string;
+  reportType: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  categoryIds: number[] | null;
+  purposeId: number | null;
+  groupId: number | null;
+  routingType: string | null;
+  memberId: number | null;
+}
+
+interface ExportActivityItem {
+  id: string;
+  createdAt: string;
+  reportType: string;
+  format: string;
+  scope: string;
+  status: "pending" | "success" | "failed";
+  message: string;
+  filename: string | null;
+  requestVariables: ExportRequestVariables;
 }
 
 interface DepartmentRoutingSummary {
@@ -106,6 +131,8 @@ interface DepartmentRoutingReportData {
 
 function ReportsPageContent() {
   const { isStaff, isCategoryAdmin, adminCategoryIds } = useUserRole();
+  const [reportMode, setReportMode] = useState<"overview" | "explore" | "exports">("overview");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
   const [reportType, setReportType] = useState<string>("daily");
   const [format, setFormat] = useState<string>("excel");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -115,11 +142,15 @@ function ReportsPageContent() {
   const [analyticsPurposeId, setAnalyticsPurposeId] = useState<string>("all");
   const [analyticsGroupId, setAnalyticsGroupId] = useState<string>("all");
   const [analyticsRoutingType, setAnalyticsRoutingType] = useState<string>("all");
+  const [exportActivity, setExportActivity] = useState<ExportActivityItem[]>([]);
   const [activeBreakdownTab, setActiveBreakdownTab] = useState<"department" | "purpose" | "group">("department");
   const [breakdownSortBy, setBreakdownSortBy] = useState<"amount" | "count">("amount");
   const [breakdownSortDirection, setBreakdownSortDirection] = useState<"desc" | "asc">("desc");
   const [breakdownPage, setBreakdownPage] = useState<number>(1);
   const [breakdownPageSize, setBreakdownPageSize] = useState<number>(10);
+  const [breakdownSearch, setBreakdownSearch] = useState<string>("");
+  const [selectedDrillDownRow, setSelectedDrillDownRow] = useState<{type: "department" | "purpose" | "group", data: any} | null>(null);
+  const [drillDownOpen, setDrillDownOpen] = useState<boolean>(false);
 
   const { data: categoriesData } = useQuery<CategoriesData>(GET_CONTRIBUTION_CATEGORIES);
   const allCategories = categoriesData?.contributionCategories || [];
@@ -159,27 +190,7 @@ function ReportsPageContent() {
     },
   });
 
-  const [generateReport, { loading }] = useMutation<ReportResponse>(GENERATE_CONTRIBUTION_REPORT, {
-    onCompleted: (data) => {
-      if (data.generateContributionReport.success) {
-        toast.success(data.generateContributionReport.message);
-
-        // Download the file
-        if (data.generateContributionReport.fileData && data.generateContributionReport.filename) {
-          downloadFile(
-            data.generateContributionReport.fileData,
-            data.generateContributionReport.filename,
-            data.generateContributionReport.contentType || "application/octet-stream"
-          );
-        }
-      } else {
-        toast.error(data.generateContributionReport.message);
-      }
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const [generateReport, { loading }] = useMutation<ReportResponse>(GENERATE_CONTRIBUTION_REPORT);
 
   const downloadFile = (base64Data: string, filename: string, contentType: string) => {
     // Convert base64 to blob
@@ -202,7 +213,53 @@ function ReportsPageContent() {
     globalThis.URL.revokeObjectURL(url);
   };
 
-  const handleGenerateReport = () => {
+  const runExportForActivity = async (activityId: string, requestVariables: ExportRequestVariables) => {
+    try {
+      const { data } = await generateReport({ variables: requestVariables });
+
+      const result = data?.generateContributionReport;
+      if (result?.success) {
+        toast.success(result.message);
+
+        if (result.fileData && result.filename) {
+          downloadFile(
+            result.fileData,
+            result.filename,
+            result.contentType || "application/octet-stream"
+          );
+        }
+
+        setExportActivity((prev) => prev.map((item) => (
+          item.id === activityId
+            ? {
+              ...item,
+              status: "success",
+              message: result.message,
+              filename: result.filename,
+            }
+            : item
+        )));
+      } else {
+        const message = result?.message || "Export failed";
+        toast.error(message);
+        setExportActivity((prev) => prev.map((item) => (
+          item.id === activityId
+            ? { ...item, status: "failed", message }
+            : item
+        )));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Export failed";
+      toast.error(`Error: ${message}`);
+      setExportActivity((prev) => prev.map((item) => (
+        item.id === activityId
+          ? { ...item, status: "failed", message }
+          : item
+      )));
+    }
+  };
+
+  const handleGenerateReport = async () => {
     // Validate custom date range
     if (reportType === "custom" && (!dateFrom || !dateTo)) {
       toast.error("Please select both start and end dates for custom reports");
@@ -214,21 +271,44 @@ function ReportsPageContent() {
       return;
     }
 
-    generateReport({
-      variables: {
-        format,
+    const activityId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const scopeSummary = [
+      analyticsCategoryId === "all" ? "All Departments" : (categories.find((c) => c.id === analyticsCategoryId)?.name || analyticsCategoryId),
+      analyticsPurposeId === "all" ? "All Purposes" : (analyticsPurposes.find((p) => p.id === analyticsPurposeId)?.name || analyticsPurposeId),
+      analyticsGroupId === "all" ? "All Groups" : (analyticsGroups.find((g) => g.id === analyticsGroupId)?.name || analyticsGroupId),
+      analyticsRoutingType === "all" ? "All Routing" : analyticsRoutingType,
+    ].join(" • ");
+
+    const requestVariables: ExportRequestVariables = {
+      format,
+      reportType,
+      dateFrom: customDateFrom,
+      dateTo: customDateTo,
+      categoryIds: selectedExportCategoryIds.length > 0
+        ? selectedExportCategoryIds.map((id) => Number.parseInt(id, 10))
+        : null,
+      purposeId: analyticsPurposeId === "all" ? null : Number.parseInt(analyticsPurposeId, 10),
+      groupId: analyticsGroupId === "all" ? null : Number.parseInt(analyticsGroupId, 10),
+      routingType: analyticsRoutingType === "all" ? null : analyticsRoutingType,
+      memberId: null,
+    };
+
+    setExportActivity((prev) => [
+      {
+        id: activityId,
+        createdAt: new Date().toISOString(),
         reportType,
-        dateFrom: customDateFrom,
-        dateTo: customDateTo,
-        categoryIds: selectedExportCategoryIds.length > 0
-          ? selectedExportCategoryIds.map((id) => Number.parseInt(id, 10))
-          : null,
-        purposeId: analyticsPurposeId === "all" ? null : Number.parseInt(analyticsPurposeId, 10),
-        groupId: analyticsGroupId === "all" ? null : Number.parseInt(analyticsGroupId, 10),
-        routingType: analyticsRoutingType === "all" ? null : analyticsRoutingType,
-        memberId: null, // Can be added later if needed
+        format,
+        scope: scopeSummary,
+        status: "pending" as const,
+        message: "Preparing export...",
+        filename: null,
+        requestVariables,
       },
-    });
+      ...prev,
+    ].slice(0, 10));
+
+    await runExportForActivity(activityId, requestVariables);
   };
 
   const routingSummary = routingReportData?.departmentRoutingReport?.summary;
@@ -248,35 +328,77 @@ function ReportsPageContent() {
   const topPurposeBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentPurpose || []).slice(0, 5);
   const topGroupBreakdown = (routingReportData?.departmentRoutingReport?.byDepartmentGroup || []).slice(0, 5);
 
+  const activeFilterChips = [
+    reportType === "custom" && dateFrom && dateTo ? `${dateFrom} → ${dateTo}` : reportType !== "custom" ? reportType : null,
+    analyticsCategoryId !== "all" ? `Department: ${categories.find((c) => c.id === analyticsCategoryId)?.name || analyticsCategoryId}` : null,
+    analyticsPurposeId !== "all" ? `Purpose: ${analyticsPurposes.find((p) => p.id === analyticsPurposeId)?.name || analyticsPurposeId}` : null,
+    analyticsGroupId !== "all" ? `Group: ${analyticsGroups.find((g) => g.id === analyticsGroupId)?.name || analyticsGroupId}` : null,
+    analyticsRoutingType !== "all" ? `Routing: ${analyticsRoutingType.replaceAll("_", " ")}` : null,
+  ].filter(Boolean) as string[];
+
+  const resetAnalyticsFilters = () => {
+    setAnalyticsCategoryId("all");
+    setAnalyticsPurposeId("all");
+    setAnalyticsGroupId("all");
+    setAnalyticsRoutingType("all");
+    setReportType("daily");
+    setDateFrom("");
+    setDateTo("");
+  };
+
   const sortedDepartmentBreakdown = useMemo(() => {
-    const rows = [...allDepartmentBreakdown];
+    let rows = [...allDepartmentBreakdown];
+    // Apply search filter
+    if (breakdownSearch.trim()) {
+      const searchLower = breakdownSearch.toLowerCase();
+      rows = rows.filter((row) => row.departmentName.toLowerCase().includes(searchLower));
+    }
+    // Apply sorting
     rows.sort((a, b) => {
       const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
       const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
       return breakdownSortDirection === "desc" ? right - left : left - right;
     });
     return rows;
-  }, [allDepartmentBreakdown, breakdownSortBy, breakdownSortDirection]);
+  }, [allDepartmentBreakdown, breakdownSortBy, breakdownSortDirection, breakdownSearch]);
 
   const sortedPurposeBreakdown = useMemo(() => {
-    const rows = [...allPurposeBreakdown];
+    let rows = [...allPurposeBreakdown];
+    // Apply search filter
+    if (breakdownSearch.trim()) {
+      const searchLower = breakdownSearch.toLowerCase();
+      rows = rows.filter((row) =>
+        row.departmentName.toLowerCase().includes(searchLower) ||
+        row.purposeName.toLowerCase().includes(searchLower)
+      );
+    }
+    // Apply sorting
     rows.sort((a, b) => {
       const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
       const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
       return breakdownSortDirection === "desc" ? right - left : left - right;
     });
     return rows;
-  }, [allPurposeBreakdown, breakdownSortBy, breakdownSortDirection]);
+  }, [allPurposeBreakdown, breakdownSortBy, breakdownSortDirection, breakdownSearch]);
 
   const sortedGroupBreakdown = useMemo(() => {
-    const rows = [...allGroupBreakdown];
+    let rows = [...allGroupBreakdown];
+    // Apply search filter
+    if (breakdownSearch.trim()) {
+      const searchLower = breakdownSearch.toLowerCase();
+      rows = rows.filter((row) =>
+        row.departmentName.toLowerCase().includes(searchLower) ||
+        row.groupName.toLowerCase().includes(searchLower)
+      );
+    }
+    // Apply sorting
     rows.sort((a, b) => {
       const left = breakdownSortBy === "amount" ? Number(a.totalAmount) : a.totalCount;
       const right = breakdownSortBy === "amount" ? Number(b.totalAmount) : b.totalCount;
       return breakdownSortDirection === "desc" ? right - left : left - right;
     });
     return rows;
-  }, [allGroupBreakdown, breakdownSortBy, breakdownSortDirection]);
+  }, [allGroupBreakdown, breakdownSortBy, breakdownSortDirection, breakdownSearch]);
 
   const activeRowsCount = activeBreakdownTab === "department"
     ? sortedDepartmentBreakdown.length
@@ -300,8 +422,31 @@ function ReportsPageContent() {
           <p className="text-muted-foreground">Generate and download contribution reports</p>
         </div>
 
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={reportMode === "overview" ? "default" : "outline"}
+            onClick={() => setReportMode("overview")}
+          >
+            Overview
+          </Button>
+          <Button
+            variant={reportMode === "explore" ? "default" : "outline"}
+            onClick={() => setReportMode("explore")}
+          >
+            Explore Data
+          </Button>
+          {isStaff && (
+            <Button
+              variant={reportMode === "exports" ? "default" : "outline"}
+              onClick={() => setReportMode("exports")}
+            >
+              Exports
+            </Button>
+          )}
+        </div>
+
         {/* Report Configuration */}
-        {isStaff && (
+        {isStaff && reportMode === "exports" && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -466,7 +611,7 @@ function ReportsPageContent() {
         )}
 
         {/* Quick Report Actions */}
-        {isStaff && (
+        {isStaff && reportMode === "exports" && (
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             onClick={() => {
@@ -533,7 +678,73 @@ function ReportsPageContent() {
         </div>
         )}
 
+        {isStaff && reportMode === "exports" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Activity</CardTitle>
+              <CardDescription>
+                Recent export attempts and statuses. Latest 10 entries are shown.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {exportActivity.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No exports yet. Generate a report to see activity here.</p>
+              ) : (
+                <div className="space-y-3">
+                  {exportActivity.map((activity) => (
+                    <div key={activity.id} className="rounded-md border p-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {activity.reportType.toUpperCase()} • {activity.format.toUpperCase()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{new Date(activity.createdAt).toLocaleString()}</p>
+                        </div>
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2 py-1 text-xs font-medium ${
+                            activity.status === "success"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : activity.status === "failed"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {activity.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">{activity.scope}</p>
+                      <p className="mt-1 text-sm">{activity.message}</p>
+                      {activity.filename && (
+                        <p className="mt-1 text-xs text-muted-foreground">File: {activity.filename}</p>
+                      )}
+                      {activity.status === "failed" && (
+                        <div className="mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              setExportActivity((prev) => prev.map((item) => (
+                                item.id === activity.id
+                                  ? { ...item, status: "pending", message: "Retrying export..." }
+                                  : item
+                              )));
+                              await runExportForActivity(activity.id, activity.requestVariables);
+                            }}
+                          >
+                            Retry Export
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Department Routing Analytics */}
+        {(reportMode === "overview" || reportMode === "explore") && (
         <Card>
           <CardHeader>
             <CardTitle>Department Routing Analytics</CardTitle>
@@ -542,6 +753,35 @@ function ReportsPageContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Active Filters</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {activeFilterChips.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">No filters applied</span>
+                  ) : (
+                    activeFilterChips.map((chip) => (
+                      <span key={chip} className="rounded-full border px-2 py-1 text-xs">
+                        {chip}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAdvancedFilters((current) => !current)}
+                >
+                  {showAdvancedFilters ? "Hide Advanced Filters" : "More Filters"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={resetAnalyticsFilters}>
+                  Reset Filters
+                </Button>
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="analytics-department">Department</Label>
@@ -591,6 +831,7 @@ function ReportsPageContent() {
                 </Select>
               </div>
 
+              {showAdvancedFilters && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="analytics-group">Group</Label>
                 <Select
@@ -610,7 +851,9 @@ function ReportsPageContent() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
 
+              {showAdvancedFilters && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="analytics-routing-type">Routing Type</Label>
                 <Select
@@ -628,6 +871,7 @@ function ReportsPageContent() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
             </div>
 
             {routingReportLoading && (
@@ -709,6 +953,7 @@ function ReportsPageContent() {
                   </div>
                 </div>
 
+                {reportMode === "explore" && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Detailed Breakdowns</h3>
 
@@ -829,6 +1074,19 @@ function ReportsPageContent() {
                     <p className="text-xs text-muted-foreground">
                       Page {normalizedBreakdownPage} of {totalBreakdownPages} • {activeRowsCount} row(s)
                     </p>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="breakdown-search">Search {activeBreakdownTab === "department" ? "Departments" : activeBreakdownTab === "purpose" ? "Purposes" : "Groups"}</Label>
+                      <Input
+                        id="breakdown-search"
+                        placeholder="Search by name..."
+                        value={breakdownSearch}
+                        onChange={(e) => {
+                          setBreakdownSearch(e.target.value);
+                          setBreakdownPage(1);
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {activeBreakdownTab === "department" && (
@@ -836,28 +1094,66 @@ function ReportsPageContent() {
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Department ({allDepartmentBreakdown.length})</p>
                     </div>
-                    <div className="max-h-64 overflow-auto">
+                    <div className="overflow-auto">
                       {allDepartmentBreakdown.length === 0 ? (
                         <p className="px-4 py-3 text-xs text-muted-foreground">No department data</p>
                       ) : (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-muted/40">
-                              <th className="px-4 py-2 text-left font-medium">Department</th>
-                              <th className="px-4 py-2 text-right font-medium">Amount</th>
-                              <th className="px-4 py-2 text-right font-medium">Count</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <>
+                          {/* Desktop Table View */}
+                          <div className="hidden md:block max-h-96">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/40">
+                                  <th className="px-4 py-2 text-left font-medium">Department</th>
+                                  <th className="px-4 py-2 text-right font-medium">Amount</th>
+                                  <th className="px-4 py-2 text-right font-medium">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pagedDepartmentBreakdown.map((row) => (
+                                  <tr
+                                    key={row.departmentId}
+                                    className="border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => {
+                                      setSelectedDrillDownRow({type: "department", data: row});
+                                      setDrillDownOpen(true);
+                                    }}
+                                  >
+                                    <td className="px-4 py-2">{row.departmentName}</td>
+                                    <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                    <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile Card View */}
+                          <div className="md:hidden space-y-2 p-4 max-h-96 overflow-auto">
                             {pagedDepartmentBreakdown.map((row) => (
-                              <tr key={row.departmentId} className="border-b last:border-0">
-                                <td className="px-4 py-2">{row.departmentName}</td>
-                                <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
-                                <td className="px-4 py-2 text-right">{row.totalCount}</td>
-                              </tr>
+                              <div
+                                key={row.departmentId}
+                                className="rounded-md border p-3 bg-card cursor-pointer hover:shadow-sm transition-shadow active:bg-muted/50"
+                                onClick={() => {
+                                  setSelectedDrillDownRow({type: "department", data: row});
+                                  setDrillDownOpen(true);
+                                }}
+                              >
+                                <p className="font-medium text-sm">{row.departmentName}</p>
+                                <div className="grid grid-cols-2 gap-3 mt-2 text-xs text-muted-foreground">
+                                  <div>
+                                    <p className="text-muted-foreground">Amount</p>
+                                    <p className="font-semibold text-foreground">KES {Number(row.totalAmount).toLocaleString("en-KE")}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Count</p>
+                                    <p className="font-semibold text-foreground">{row.totalCount}</p>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -868,30 +1164,69 @@ function ReportsPageContent() {
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Purpose ({allPurposeBreakdown.length})</p>
                     </div>
-                    <div className="max-h-64 overflow-auto">
+                    <div className="overflow-auto">
                       {allPurposeBreakdown.length === 0 ? (
                         <p className="px-4 py-3 text-xs text-muted-foreground">No purpose data</p>
                       ) : (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-muted/40">
-                              <th className="px-4 py-2 text-left font-medium">Department</th>
-                              <th className="px-4 py-2 text-left font-medium">Purpose</th>
-                              <th className="px-4 py-2 text-right font-medium">Amount</th>
-                              <th className="px-4 py-2 text-right font-medium">Count</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <>
+                          {/* Desktop Table View */}
+                          <div className="hidden md:block max-h-96">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/40">
+                                  <th className="px-4 py-2 text-left font-medium">Department</th>
+                                  <th className="px-4 py-2 text-left font-medium">Purpose</th>
+                                  <th className="px-4 py-2 text-right font-medium">Amount</th>
+                                  <th className="px-4 py-2 text-right font-medium">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pagedPurposeBreakdown.map((row) => (
+                                  <tr
+                                    key={`${row.departmentId}-${row.purposeId}`}
+                                    className="border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => {
+                                      setSelectedDrillDownRow({type: "purpose", data: row});
+                                      setDrillDownOpen(true);
+                                    }}
+                                  >
+                                    <td className="px-4 py-2">{row.departmentName}</td>
+                                    <td className="px-4 py-2">{row.purposeName}</td>
+                                    <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                    <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile Card View */}
+                          <div className="md:hidden space-y-2 p-4 max-h-96 overflow-auto">
                             {pagedPurposeBreakdown.map((row) => (
-                              <tr key={`${row.departmentId}-${row.purposeId}`} className="border-b last:border-0">
-                                <td className="px-4 py-2">{row.departmentName}</td>
-                                <td className="px-4 py-2">{row.purposeName}</td>
-                                <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
-                                <td className="px-4 py-2 text-right">{row.totalCount}</td>
-                              </tr>
+                              <div
+                                key={`${row.departmentId}-${row.purposeId}`}
+                                className="rounded-md border p-3 bg-card cursor-pointer hover:shadow-sm transition-shadow active:bg-muted/50"
+                                onClick={() => {
+                                  setSelectedDrillDownRow({type: "purpose", data: row});
+                                  setDrillDownOpen(true);
+                                }}
+                              >
+                                <p className="font-medium text-sm">{row.departmentName}</p>
+                                <p className="text-xs text-muted-foreground">{row.purposeName}</p>
+                                <div className="grid grid-cols-2 gap-3 mt-2 text-xs text-muted-foreground">
+                                  <div>
+                                    <p className="text-muted-foreground">Amount</p>
+                                    <p className="font-semibold text-foreground">KES {Number(row.totalAmount).toLocaleString("en-KE")}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Count</p>
+                                    <p className="font-semibold text-foreground">{row.totalCount}</p>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -902,43 +1237,175 @@ function ReportsPageContent() {
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium">By Group ({allGroupBreakdown.length})</p>
                     </div>
-                    <div className="max-h-64 overflow-auto">
+                    <div className="overflow-auto">
                       {allGroupBreakdown.length === 0 ? (
                         <p className="px-4 py-3 text-xs text-muted-foreground">No group data</p>
                       ) : (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-muted/40">
-                              <th className="px-4 py-2 text-left font-medium">Department</th>
-                              <th className="px-4 py-2 text-left font-medium">Group</th>
-                              <th className="px-4 py-2 text-right font-medium">Amount</th>
-                              <th className="px-4 py-2 text-right font-medium">Count</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <>
+                          {/* Desktop Table View */}
+                          <div className="hidden md:block max-h-96">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/40">
+                                  <th className="px-4 py-2 text-left font-medium">Department</th>
+                                  <th className="px-4 py-2 text-left font-medium">Group</th>
+                                  <th className="px-4 py-2 text-right font-medium">Amount</th>
+                                  <th className="px-4 py-2 text-right font-medium">Count</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pagedGroupBreakdown.map((row, index) => {
+                                  const groupKey = row.groupId || `top-${breakdownStart + index}`;
+                                  return (
+                                    <tr
+                                      key={`${row.departmentId}-${groupKey}`}
+                                      className="border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                                      onClick={() => {
+                                        setSelectedDrillDownRow({type: "group", data: row});
+                                        setDrillDownOpen(true);
+                                      }}
+                                    >
+                                      <td className="px-4 py-2">{row.departmentName}</td>
+                                      <td className="px-4 py-2">{row.groupName}</td>
+                                      <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
+                                      <td className="px-4 py-2 text-right">{row.totalCount}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile Card View */}
+                          <div className="md:hidden space-y-2 p-4 max-h-96 overflow-auto">
                             {pagedGroupBreakdown.map((row, index) => {
                               const groupKey = row.groupId || `top-${breakdownStart + index}`;
                               return (
-                                <tr key={`${row.departmentId}-${groupKey}`} className="border-b last:border-0">
-                                  <td className="px-4 py-2">{row.departmentName}</td>
-                                  <td className="px-4 py-2">{row.groupName}</td>
-                                  <td className="px-4 py-2 text-right font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</td>
-                                  <td className="px-4 py-2 text-right">{row.totalCount}</td>
-                                </tr>
+                                <div
+                                  key={`${row.departmentId}-${groupKey}`}
+                                  className="rounded-md border p-3 bg-card cursor-pointer hover:shadow-sm transition-shadow active:bg-muted/50"
+                                  onClick={() => {
+                                    setSelectedDrillDownRow({type: "group", data: row});
+                                    setDrillDownOpen(true);
+                                  }}
+                                >
+                                  <p className="font-medium text-sm">{row.departmentName}</p>
+                                  <p className="text-xs text-muted-foreground">{row.groupName}</p>
+                                  <div className="grid grid-cols-2 gap-3 mt-2 text-xs text-muted-foreground">
+                                    <div>
+                                      <p className="text-muted-foreground">Amount</p>
+                                      <p className="font-semibold text-foreground">KES {Number(row.totalAmount).toLocaleString("en-KE")}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Count</p>
+                                      <p className="font-semibold text-foreground">{row.totalCount}</p>
+                                    </div>
+                                  </div>
+                                </div>
                               );
                             })}
-                          </tbody>
-                        </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
                   )}
                 </div>
+                )}
               </>
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+
+      {/* Drill-Down Dialog */}
+      <Dialog open={drillDownOpen} onOpenChange={setDrillDownOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDrillDownRow?.type === "department"
+                ? selectedDrillDownRow?.data?.departmentName
+                : selectedDrillDownRow?.type === "purpose"
+                  ? `${selectedDrillDownRow?.data?.departmentName} → ${selectedDrillDownRow?.data?.purposeName}`
+                  : `${selectedDrillDownRow?.data?.departmentName} → ${selectedDrillDownRow?.data?.groupName}`}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDrillDownRow?.type === "department"
+                ? "Detailed breakdown by purpose"
+                : selectedDrillDownRow?.type === "purpose"
+                  ? "Detailed breakdown by group"
+                  : "Contribution details"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-4 py-3 space-y-4 max-h-96 overflow-auto">
+            {selectedDrillDownRow && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Amount</p>
+                    <p className="text-lg font-semibold">KES {Number(selectedDrillDownRow.data.totalAmount).toLocaleString("en-KE")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Count</p>
+                    <p className="text-lg font-semibold">{selectedDrillDownRow.data.totalCount} contributions</p>
+                  </div>
+                </div>
+
+                {selectedDrillDownRow.type === "department" && (
+                  <>
+                    <div className="border-t pt-4">
+                      <p className="text-sm font-medium mb-3">Top Purposes</p>
+                      <div className="space-y-2">
+                        {allPurposeBreakdown
+                          .filter((row) => row.departmentId === selectedDrillDownRow.data.departmentId)
+                          .sort((a, b) => Number(b.totalAmount) - Number(a.totalAmount))
+                          .slice(0, 5)
+                          .map((row) => (
+                            <div key={row.purposeId} className="flex items-center justify-between p-2 rounded border bg-muted/30">
+                              <span className="text-sm">{row.purposeName}</span>
+                              <div className="text-right text-xs">
+                                <p className="font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</p>
+                                <p className="text-muted-foreground">{row.totalCount} items</p>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {selectedDrillDownRow.type === "purpose" && (
+                  <>
+                    <div className="border-t pt-4">
+                      <p className="text-sm font-medium mb-3">Top Groups</p>
+                      <div className="space-y-2">
+                        {allGroupBreakdown
+                          .filter(
+                            (row) =>
+                              row.departmentId === selectedDrillDownRow.data.departmentId
+                          )
+                          .sort((a, b) => Number(b.totalAmount) - Number(a.totalAmount))
+                          .slice(0, 5)
+                          .map((row, index) => (
+                            <div key={row.groupId || `${row.departmentId}-${index}`} className="flex items-center justify-between p-2 rounded border bg-muted/30">
+                              <span className="text-sm">{row.groupName}</span>
+                              <div className="text-right text-xs">
+                                <p className="font-medium">KES {Number(row.totalAmount).toLocaleString("en-KE")}</p>
+                                <p className="text-muted-foreground">{row.totalCount} items</p>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

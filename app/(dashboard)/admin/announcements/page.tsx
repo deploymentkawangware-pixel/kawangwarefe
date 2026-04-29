@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { GET_ALL_ANNOUNCEMENTS } from "@/lib/graphql/announcement-queries";
+import {
+  GET_ADMIN_ANNOUNCEMENTS,
+  GET_ADMIN_ANNOUNCEMENT_COUNTS,
+} from "@/lib/graphql/announcement-queries";
 import {
   CREATE_ANNOUNCEMENT,
   UPDATE_ANNOUNCEMENT,
@@ -19,6 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import { AdminProtectedRoute } from "@/components/auth/admin-protected-route";
+import { BulkAnnouncementsDialog } from "@/components/admin/bulk-announcements-dialog";
 import {
   Dialog,
   DialogContent,
@@ -49,8 +53,33 @@ import {
   ArrowUp,
   ArrowDown,
   Calendar,
+  Clock,
+  CalendarClock,
+  CalendarPlus,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
+
+const isExpired = (a: { expiryDate?: string | null }) =>
+  !!a.expiryDate && new Date(a.expiryDate).getTime() <= Date.now();
+
+const isScheduled = (a: { publishDate: string }) =>
+  new Date(a.publishDate).getTime() > Date.now();
+
+const formatDateTime = (value?: string | null) =>
+  value ? format(new Date(value), "MMM d, yyyy h:mm a") : "—";
+
+// datetime-local inputs produce "YYYY-MM-DDTHH:MM"; backend expects
+// "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD". Convert before sending.
+const toBackendDateTime = (value: string): string | undefined => {
+  if (!value) return undefined;
+  const [d, t] = value.split("T");
+  if (!t) return d;
+  const seconds = t.length === 5 ? `${t}:00` : t;
+  return `${d} ${seconds}`;
+};
 
 interface Announcement {
   id: string;
@@ -70,13 +99,47 @@ interface AnnouncementMutationResponse {
   announcement?: Announcement;
 }
 
+interface AnnouncementCounts {
+  total: number;
+  active: number;
+  inactive: number;
+  scheduled: number;
+  expired: number;
+  highPriority: number;
+}
+
+interface PaginatedAdminAnnouncementsResult {
+  adminAnnouncements: {
+    total: number;
+    hasMore: boolean;
+    items: Announcement[];
+  };
+}
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 function AnnouncementsManagementPageContent() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const [selectedAnnouncements, setSelectedAnnouncements] = useState<Set<string>>(new Set());
 
+  // Debounce search-driven server queries.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Reset to first page when filters/search change.
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, activeFilter, pageSize]);
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentAnnouncement, setCurrentAnnouncement] = useState<Announcement | null>(null);
 
@@ -99,39 +162,46 @@ function AnnouncementsManagementPageContent() {
   const [editIsActive, setEditIsActive] = useState(false);
   const [editPriority, setEditPriority] = useState(0);
 
-  const { data, loading, refetch } = useQuery<{ announcements: Announcement[] }>(GET_ALL_ANNOUNCEMENTS, {
-    variables: { limit: 1000 },
-  });
+  const { data, loading, refetch } = useQuery<PaginatedAdminAnnouncementsResult>(
+    GET_ADMIN_ANNOUNCEMENTS,
+    {
+      variables: {
+        limit: pageSize,
+        offset: page * pageSize,
+        search: debouncedSearch || undefined,
+        status: activeFilter,
+      },
+      fetchPolicy: "cache-and-network",
+    }
+  );
+
+  const { data: countsData, refetch: refetchCounts } = useQuery<{
+    adminAnnouncementCounts: AnnouncementCounts;
+  }>(GET_ADMIN_ANNOUNCEMENT_COUNTS, { fetchPolicy: "cache-and-network" });
+
+  const refetchAll = () => {
+    refetch();
+    refetchCounts();
+  };
 
   const [createAnnouncement, { loading: creating }] = useMutation<{ createAnnouncement: AnnouncementMutationResponse }>(CREATE_ANNOUNCEMENT);
   const [updateAnnouncement, { loading: updating }] = useMutation<{ updateAnnouncement: AnnouncementMutationResponse }>(UPDATE_ANNOUNCEMENT);
   const [deleteAnnouncement, { loading: deleting }] = useMutation<{ deleteAnnouncement: AnnouncementMutationResponse }>(DELETE_ANNOUNCEMENT);
   const [toggleActive] = useMutation<{ toggleAnnouncementActive: AnnouncementMutationResponse }>(TOGGLE_ANNOUNCEMENT_ACTIVE);
 
-  const announcements: Announcement[] = data?.announcements || [];
+  const announcements: Announcement[] = data?.adminAnnouncements?.items ?? [];
+  const totalForFilter = data?.adminAnnouncements?.total ?? 0;
+  const hasMore = data?.adminAnnouncements?.hasMore ?? false;
+  const sortedAnnouncements = announcements;
 
-  // Filter announcements
-  const filteredAnnouncements = announcements.filter((announcement) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      announcement.content.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesActive =
-      activeFilter === "all" ||
-      (activeFilter === "active" && announcement.isActive) ||
-      (activeFilter === "inactive" && !announcement.isActive);
-
-    return matchesSearch && matchesActive;
-  });
-
-  // Sort by priority (descending) then by publish date (descending)
-  const sortedAnnouncements = [...filteredAnnouncements].sort((a, b) => {
-    if (a.priority !== b.priority) {
-      return b.priority - a.priority;
-    }
-    return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
-  });
+  const counts: AnnouncementCounts = countsData?.adminAnnouncementCounts ?? {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    scheduled: 0,
+    expired: 0,
+    highPriority: 0,
+  };
 
   const clearMessages = () => {
     setSuccess("");
@@ -161,8 +231,8 @@ function AnnouncementsManagementPageContent() {
         variables: {
           title: newTitle.trim(),
           content: newContent.trim(),
-          publishDate: newPublishDate || undefined,
-          expiryDate: newExpiryDate || undefined,
+          publishDate: toBackendDateTime(newPublishDate),
+          expiryDate: toBackendDateTime(newExpiryDate),
           isActive: newIsActive,
           priority: newPriority,
         },
@@ -172,7 +242,7 @@ function AnnouncementsManagementPageContent() {
         setSuccess(data.createAnnouncement.message);
         resetCreateForm();
         setShowCreateDialog(false);
-        refetch();
+        refetchAll();
       } else {
         setError(data?.createAnnouncement?.message || "Failed to create announcement");
       }
@@ -185,8 +255,8 @@ function AnnouncementsManagementPageContent() {
     setCurrentAnnouncement(announcement);
     setEditTitle(announcement.title);
     setEditContent(announcement.content);
-    setEditPublishDate(announcement.publishDate ? announcement.publishDate.split("T")[0] : "");
-    setEditExpiryDate(announcement.expiryDate ? announcement.expiryDate.split("T")[0] : "");
+    setEditPublishDate(announcement.publishDate ? announcement.publishDate.slice(0, 16) : "");
+    setEditExpiryDate(announcement.expiryDate ? announcement.expiryDate.slice(0, 16) : "");
     setEditIsActive(announcement.isActive);
     setEditPriority(announcement.priority);
     setShowEditDialog(true);
@@ -203,8 +273,8 @@ function AnnouncementsManagementPageContent() {
           announcementId: currentAnnouncement.id,
           title: editTitle.trim() || undefined,
           content: editContent.trim() || undefined,
-          publishDate: editPublishDate || undefined,
-          expiryDate: editExpiryDate || "",
+          publishDate: toBackendDateTime(editPublishDate),
+          expiryDate: editExpiryDate ? toBackendDateTime(editExpiryDate) : "",
           isActive: editIsActive,
           priority: editPriority,
         },
@@ -213,7 +283,7 @@ function AnnouncementsManagementPageContent() {
       if (data?.updateAnnouncement?.success) {
         setSuccess(data.updateAnnouncement.message);
         setShowEditDialog(false);
-        refetch();
+        refetchAll();
       } else {
         setError(data?.updateAnnouncement?.message || "Failed to update announcement");
       }
@@ -240,7 +310,7 @@ function AnnouncementsManagementPageContent() {
 
       if (data?.deleteAnnouncement?.success) {
         setSuccess(data.deleteAnnouncement.message);
-        refetch();
+        refetchAll();
       } else {
         setError(data?.deleteAnnouncement?.message || "Failed to delete announcement");
       }
@@ -259,7 +329,7 @@ function AnnouncementsManagementPageContent() {
 
       if (data?.toggleAnnouncementActive?.success) {
         setSuccess(data.toggleAnnouncementActive.message);
-        refetch();
+        refetchAll();
       } else {
         setError(data?.toggleAnnouncementActive?.message || "Failed to toggle active status");
       }
@@ -281,7 +351,7 @@ function AnnouncementsManagementPageContent() {
 
       if (data?.updateAnnouncement?.success) {
         setSuccess("Priority updated successfully");
-        refetch();
+        refetchAll();
       } else {
         setError(data?.updateAnnouncement?.message || "Failed to update priority");
       }
@@ -300,7 +370,7 @@ function AnnouncementsManagementPageContent() {
       }
       setSuccess(`Updated ${selectedAnnouncements.size} announcement(s)`);
       setSelectedAnnouncements(new Set());
-      refetch();
+      refetchAll();
     } catch (err: any) {
       setError(err.message || "Error in bulk operation");
     }
@@ -325,7 +395,7 @@ function AnnouncementsManagementPageContent() {
       }
       setSuccess(`Deleted ${selectedAnnouncements.size} announcement(s)`);
       setSelectedAnnouncements(new Set());
-      refetch();
+      refetchAll();
     } catch (err: any) {
       setError(err.message || "Error in bulk delete");
     }
@@ -341,16 +411,24 @@ function AnnouncementsManagementPageContent() {
     setSelectedAnnouncements(newSelection);
   };
 
+  const allOnPageSelected =
+    sortedAnnouncements.length > 0 &&
+    sortedAnnouncements.every((a) => selectedAnnouncements.has(a.id));
+
   const toggleSelectAll = () => {
-    if (selectedAnnouncements.size === sortedAnnouncements.length) {
-      setSelectedAnnouncements(new Set());
+    const next = new Set(selectedAnnouncements);
+    if (allOnPageSelected) {
+      sortedAnnouncements.forEach((a) => next.delete(a.id));
     } else {
-      setSelectedAnnouncements(new Set(sortedAnnouncements.map((a) => a.id)));
+      sortedAnnouncements.forEach((a) => next.add(a.id));
     }
+    setSelectedAnnouncements(next);
   };
 
-  const activeCount = announcements.filter((a) => a.isActive).length;
-  const highPriorityCount = announcements.filter((a) => a.priority > 0).length;
+  const totalPages = Math.max(1, Math.ceil(totalForFilter / pageSize));
+  const currentPage = totalForFilter === 0 ? 0 : page + 1;
+  const rangeStart = totalForFilter === 0 ? 0 : page * pageSize + 1;
+  const rangeEnd = page * pageSize + announcements.length;
 
   return (
     <AdminLayout>
@@ -361,20 +439,30 @@ function AnnouncementsManagementPageContent() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Announcements</h1>
             <p className="text-muted-foreground">Manage church announcements and notices</p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            New Announcement
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowBulkDialog(true)}
+              className="w-full sm:w-auto"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Bulk Add
+            </Button>
+            <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              New Announcement
+            </Button>
+          </div>
         </div>
 
         {/* Statistics */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{announcements.length}</div>
+              <div className="text-2xl font-bold">{counts.total}</div>
             </CardContent>
           </Card>
           <Card>
@@ -382,15 +470,7 @@ function AnnouncementsManagementPageContent() {
               <CardTitle className="text-sm font-medium">Active</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{activeCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{highPriorityCount}</div>
+              <div className="text-2xl font-bold">{counts.active}</div>
             </CardContent>
           </Card>
           <Card>
@@ -398,7 +478,31 @@ function AnnouncementsManagementPageContent() {
               <CardTitle className="text-sm font-medium">Inactive</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{announcements.length - activeCount}</div>
+              <div className="text-2xl font-bold">{counts.inactive}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{counts.scheduled}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{counts.expired}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">High Priority</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{counts.highPriority}</div>
             </CardContent>
           </Card>
         </div>
@@ -451,15 +555,20 @@ function AnnouncementsManagementPageContent() {
                   onChange={(e) => setActiveFilter(e.target.value)}
                 >
                   <option value="all">All Status</option>
-                  <option value="active">Active Only</option>
-                  <option value="inactive">Inactive Only</option>
+                  <option value="live">Live (Active &amp; Visible)</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="expired">Expired</option>
                 </select>
               </div>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing {sortedAnnouncements.length} of {announcements.length} announcement(s)
+                {totalForFilter === 0
+                  ? "No announcements match these filters"
+                  : `Showing ${rangeStart}–${rangeEnd} of ${totalForFilter} announcement(s)`}
               </p>
 
               {selectedAnnouncements.size > 0 && (
@@ -484,14 +593,11 @@ function AnnouncementsManagementPageContent() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Announcements ({sortedAnnouncements.length})
+                Announcements ({totalForFilter})
               </CardTitle>
               {sortedAnnouncements.length > 0 && (
                 <Button size="sm" variant="ghost" onClick={toggleSelectAll}>
-                  <Checkbox
-                    checked={selectedAnnouncements.size === sortedAnnouncements.length}
-                    className="mr-2"
-                  />
+                  <Checkbox checked={allOnPageSelected} className="mr-2" />
                   Select All
                 </Button>
               )}
@@ -512,25 +618,46 @@ function AnnouncementsManagementPageContent() {
               </div>
             ) : (
               <div className="space-y-4">
-                {sortedAnnouncements.map((announcement) => (
+                {sortedAnnouncements.map((announcement) => {
+                  const expired = isExpired(announcement);
+                  const scheduled = isScheduled(announcement);
+                  const live = announcement.isActive && !expired && !scheduled;
+
+                  return (
                   <Card key={announcement.id} className="overflow-hidden">
                     <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
                           <Checkbox
                             checked={selectedAnnouncements.has(announcement.id)}
                             onCheckedChange={() => toggleAnnouncementSelection(announcement.id)}
                           />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <CardTitle className="text-lg">{announcement.title}</CardTitle>
-                              <div className="flex gap-2">
-                                {announcement.isActive && (
-                                  <Badge variant="default" className="bg-green-500">
-                                    Active
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <CardTitle className="text-lg break-words">{announcement.title}</CardTitle>
+                              <div className="flex flex-wrap gap-2">
+                                {announcement.isActive ? (
+                                  <Badge variant="default" className="bg-green-500">Active</Badge>
+                                ) : (
+                                  <Badge variant="secondary">Inactive</Badge>
+                                )}
+                                {live && (
+                                  <Badge variant="outline" className="border-green-500 text-green-700">
+                                    Live
                                   </Badge>
                                 )}
-                                {!announcement.isActive && <Badge variant="secondary">Inactive</Badge>}
+                                {scheduled && (
+                                  <Badge variant="default" className="bg-blue-500">
+                                    <CalendarPlus className="h-3 w-3 mr-1" />
+                                    Scheduled
+                                  </Badge>
+                                )}
+                                {expired && (
+                                  <Badge variant="default" className="bg-amber-500">
+                                    <CalendarClock className="h-3 w-3 mr-1" />
+                                    Expired
+                                  </Badge>
+                                )}
                                 {announcement.priority > 0 && (
                                   <Badge variant="default" className="bg-red-500">
                                     Priority {announcement.priority}
@@ -538,45 +665,76 @@ function AnnouncementsManagementPageContent() {
                                 )}
                               </div>
                             </div>
-                            <CardDescription className="line-clamp-2 mb-3">
+
+                            <CardDescription className="mb-3 whitespace-pre-wrap break-words">
                               {announcement.content}
                             </CardDescription>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {format(new Date(announcement.publishDate), "MMM d, yyyy")}
-                              </span>
-                              {announcement.expiryDate && (
-                                <span className="flex items-center gap-1">
-                                  <span title="Expiry Date">⏱️</span>
-                                  {format(new Date(announcement.expiryDate), "MMM d, yyyy")}
-                                </span>
-                              )}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    handleChangePriority(announcement.id, announcement.priority + 1)
-                                  }
-                                  title="Increase priority"
-                                >
-                                  <ArrowUp className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    handleChangePriority(
-                                      announcement.id,
-                                      Math.max(0, announcement.priority - 1)
-                                    )
-                                  }
-                                  title="Decrease priority"
-                                >
-                                  <ArrowDown className="h-4 w-4" />
-                                </Button>
+
+                            <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                              <div className="flex items-start gap-2">
+                                <Calendar className="h-4 w-4 mt-0.5 shrink-0" />
+                                <div>
+                                  <div className="text-xs uppercase tracking-wide">Publish</div>
+                                  <div>{formatDateTime(announcement.publishDate)}</div>
+                                </div>
                               </div>
+                              <div className="flex items-start gap-2">
+                                <CalendarClock className="h-4 w-4 mt-0.5 shrink-0" />
+                                <div>
+                                  <div className="text-xs uppercase tracking-wide">Expires</div>
+                                  <div>
+                                    {announcement.expiryDate
+                                      ? formatDateTime(announcement.expiryDate)
+                                      : "Never"}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+                                <div>
+                                  <div className="text-xs uppercase tracking-wide">Created</div>
+                                  <div>{formatDateTime(announcement.createdAt)}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+                                <div>
+                                  <div className="text-xs uppercase tracking-wide">Updated</div>
+                                  <div>{formatDateTime(announcement.updatedAt)}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2 sm:col-span-2">
+                                <span className="text-xs uppercase tracking-wide pt-0.5">ID</span>
+                                <code className="text-xs break-all">{announcement.id}</code>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-3">
+                              <span className="text-xs text-muted-foreground">Priority:</span>
+                              <span className="text-sm font-medium">{announcement.priority}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleChangePriority(announcement.id, announcement.priority + 1)
+                                }
+                                title="Increase priority"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleChangePriority(
+                                    announcement.id,
+                                    Math.max(0, announcement.priority - 1)
+                                  )
+                                }
+                                title="Decrease priority"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -611,7 +769,53 @@ function AnnouncementsManagementPageContent() {
                       </div>
                     </CardHeader>
                   </Card>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+
+            {totalForFilter > 0 && (
+              <div className="mt-6 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Label htmlFor="pageSize" className="text-sm font-normal">
+                    Per page
+                  </Label>
+                  <select
+                    id="pageSize"
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                    value={pageSize}
+                    onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+                  >
+                    {PAGE_SIZE_OPTIONS.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="ml-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page === 0 || loading}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!hasMore || loading}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -650,20 +854,23 @@ function AnnouncementsManagementPageContent() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="publishDate">Publish Date</Label>
+                  <Label htmlFor="publishDate">Publish Date &amp; Time</Label>
                   <Input
                     id="publishDate"
-                    type="date"
+                    type="datetime-local"
                     value={newPublishDate}
                     onChange={(e) => setNewPublishDate(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Future dates schedule the announcement for later.
+                  </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
+                  <Label htmlFor="expiryDate">Expiry Date &amp; Time (Optional)</Label>
                   <Input
                     id="expiryDate"
-                    type="date"
+                    type="datetime-local"
                     value={newExpiryDate}
                     onChange={(e) => setNewExpiryDate(e.target.value)}
                   />
@@ -743,20 +950,20 @@ function AnnouncementsManagementPageContent() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="editPublishDate">Publish Date</Label>
+                  <Label htmlFor="editPublishDate">Publish Date &amp; Time</Label>
                   <Input
                     id="editPublishDate"
-                    type="date"
+                    type="datetime-local"
                     value={editPublishDate}
                     onChange={(e) => setEditPublishDate(e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="editExpiryDate">Expiry Date (Optional)</Label>
+                  <Label htmlFor="editExpiryDate">Expiry Date &amp; Time (Optional)</Label>
                   <Input
                     id="editExpiryDate"
-                    type="date"
+                    type="datetime-local"
                     value={editExpiryDate}
                     onChange={(e) => setEditExpiryDate(e.target.value)}
                   />
@@ -798,6 +1005,15 @@ function AnnouncementsManagementPageContent() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <BulkAnnouncementsDialog
+          open={showBulkDialog}
+          onOpenChange={setShowBulkDialog}
+          onCreated={(count) => {
+            setSuccess(`Created ${count} announcement(s)`);
+            refetchAll();
+          }}
+        />
+
         <ConfirmDialog />
       </div>
     </AdminLayout>

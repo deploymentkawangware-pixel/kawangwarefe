@@ -9,10 +9,12 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@apollo/client/react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { GET_ME } from "@/lib/graphql/profile-mutations";
 import {
   LayoutDashboard,
   DollarSign,
@@ -27,6 +29,9 @@ import {
   UserRound,
   Smartphone,
   Newspaper,
+  MessageSquare,
+  Heart,
+  UserCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { AdminBottomNav } from "@/components/layouts/admin-bottom-nav";
@@ -36,7 +41,7 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-type FeatureType = "overview" | "contributions" | "members" | "categories" | "groups" | "category-admins" | "reports" | "c2b-transactions" | "content";
+type FeatureType = "overview" | "contributions" | "members" | "categories" | "groups" | "category-admins" | "reports" | "c2b-transactions" | "content" | "messaging" | "prayers";
 
 interface NavItem {
   name: string;
@@ -45,12 +50,23 @@ interface NavItem {
   feature: FeatureType;
 }
 
+interface MeAvatarData {
+  me: { id: string; avatarUrl: string | null } | null;
+}
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isStaff, isCategoryAdmin, isGroupAdmin, isContentAdmin, canAccessFeature, adminCategories, loading: roleLoading } = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Errors ignored — the sidebar falls back to the user-initial icon if the
+  // authenticated member can't be loaded.
+  const { data: meData } = useQuery<MeAvatarData>(GET_ME, {
+    errorPolicy: "ignore",
+    fetchPolicy: "cache-first",
+  });
+  const avatarUrl = meData?.me?.avatarUrl ?? null;
 
   const handleLogout = async () => {
     await logout();
@@ -69,6 +85,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Reports", href: "/admin/reports", icon: FileText, feature: "reports" },
     { name: "C2B / Pay Bill", href: "/admin/c2b-transactions", icon: Smartphone, feature: "c2b-transactions" },
     { name: "Church Content", href: "/admin/content", icon: Newspaper, feature: "content" },
+    { name: "Bulk Messaging", href: "/admin/messaging", icon: MessageSquare, feature: "messaging" },
+    { name: "Prayer Requests", href: "/admin/prayers", icon: Heart, feature: "prayers" },
   ];
 
   // Filter navigation based on user's role
@@ -220,9 +238,26 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* User info */}
           <div className="p-4 border-t border-border">
-            <div className="text-sm mb-3">
-              <p className="font-medium truncate">{user?.fullName}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.phoneNumber}</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                aria-hidden
+                className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0"
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="text-sm min-w-0">
+                <p className="font-medium truncate">{user?.fullName}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.phoneNumber}</p>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -243,43 +278,29 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <header className="bg-card border-b border-border sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="icon-mobile"
-                className="lg:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon-mobile"
+                  className="lg:hidden"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+                {/* Page title could go here in future */}
+              </div>
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden sm:flex h-10"
-                  onClick={() => router.push("/dashboard")}
+                  onClick={() => router.push('/dashboard')}
+                  aria-label="Switch to member view"
                 >
-                  Member View
+                  <UserRound className="h-4 w-4 mr-2" />
+                  Switch to Member View
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon-mobile"
-                  className="sm:hidden"
-                  onClick={() => router.push("/dashboard")}
-                  title="Member View"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
-                {/* Theme Toggle */}
-                <ThemeToggle variant="button" size="icon-mobile" />
-                <Button
-                  variant="ghost"
-                  size="icon-mobile"
-                  className="lg:hidden text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={handleLogout}
-                  title="Logout"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
+                {/* Header actions removed — primary navigation available via sidebar and bottom nav */}
               </div>
             </div>
           </div>

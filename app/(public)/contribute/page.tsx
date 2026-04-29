@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ContributionForm } from "@/components/forms/contribution-form";
 import { Navigation } from "@/components/landing/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { MemberLayout } from "@/components/layouts/member-layout";
 import { useTour } from "@/hooks/use-tour";
 import { CONTRIBUTION_FLOW_TOUR_CONFIG } from "@/lib/tours/tour-configs";
 import { Button } from "@/components/ui/button";
@@ -33,19 +34,14 @@ export default function ContributePage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <Navigation />
-
+  const content = (
+    <>
       {/* Gradient Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-teal-50 via-emerald-50 to-blue-50 dark:from-teal-950/20 dark:via-emerald-950/20 dark:to-blue-950/20 border-b border-emerald-200/30 dark:border-emerald-800/30">
-        {/* Decorative gradient orb */}
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-emerald-400/10 to-teal-400/10 dark:from-emerald-500/5 dark:to-teal-500/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-tr from-blue-400/10 to-emerald-400/10 dark:from-blue-500/5 dark:to-emerald-500/5 rounded-full blur-3xl" />
 
         <div className="relative container mx-auto px-4 py-12 md:py-16">
-          {/* Header */}
           <div className="text-center space-y-3 animate-fade-in max-w-3xl mx-auto">
             <div className="inline-block mb-2">
               <span className="px-3 py-1 rounded-full bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-300/50 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold uppercase tracking-wider">
@@ -62,7 +58,6 @@ export default function ContributePage() {
         </div>
       </div>
 
-      {/* Dashboard return bar for logged-in users */}
       {isAuthenticated && (
         <div className="bg-muted/40 border-b backdrop-blur-sm">
           <div className="container mx-auto px-4 py-2 flex items-center">
@@ -79,10 +74,8 @@ export default function ContributePage() {
         </div>
       )}
 
-      {/* Main content */}
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Help button */}
           <div className="flex justify-end">
             <Button
               variant="outline"
@@ -95,12 +88,10 @@ export default function ContributePage() {
             </Button>
           </div>
 
-          {/* Contribution Form */}
           <div data-tour="contribution-form" className="animate-slide-up">
             <ContributionForm onSuccess={handleSuccess} />
           </div>
 
-          {/* Quick Info Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-slide-up">
             <div className="flex flex-col items-center gap-2 p-4 rounded-lg border border-emerald-200/30 dark:border-emerald-800/30 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30 transition-colors">
               <span className="text-2xl">🔒</span>
@@ -120,6 +111,15 @@ export default function ContributePage() {
           </div>
         </div>
       </main>
+    </>
+  );
+
+  return isAuthenticated ? (
+    <MemberLayout>{content}</MemberLayout>
+  ) : (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      {content}
     </div>
   );
 }

@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+type Audience = "all" | "adult" | "children";
+
 interface Category {
   id: string;
   name: string;
@@ -48,6 +50,7 @@ interface Category {
   isActive: boolean;
   routingMode?: "TOP_LEVEL" | "AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE" | "OPTIONAL_DETAILS";
   fallbackIfNoGroup?: "TOP_LEVEL" | "REJECT";
+  audience?: Audience;
   allowedGroups?: GroupItem[];
 }
 
@@ -101,6 +104,7 @@ function CategoryManagementPageContent() {
   const [newRoutingMode, setNewRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
   const [newFallbackIfNoGroup, setNewFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
   const [newAllowedGroupIds, setNewAllowedGroupIds] = useState<string[]>([]);
+  const [newAudience, setNewAudience] = useState<Audience>("all");
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -109,6 +113,7 @@ function CategoryManagementPageContent() {
   const [editRoutingMode, setEditRoutingMode] = useState<"AUTO_MEMBER_GROUP" | "REQUIRES_PURPOSE">("REQUIRES_PURPOSE");
   const [editFallbackIfNoGroup, setEditFallbackIfNoGroup] = useState<"TOP_LEVEL" | "REJECT">("TOP_LEVEL");
   const [editAllowedGroupIds, setEditAllowedGroupIds] = useState<string[]>([]);
+  const [editAudience, setEditAudience] = useState<Audience>("all");
 
   const { data, loading, refetch } = useQuery<GetCategoriesData>(GET_ALL_CATEGORIES);
   const categories = data?.contributionCategories || [];
@@ -161,6 +166,7 @@ function CategoryManagementPageContent() {
           routingMode: newRoutingMode,
           fallbackIfNoGroup: newRoutingMode === "AUTO_MEMBER_GROUP" ? newFallbackIfNoGroup : "TOP_LEVEL",
           allowedGroupIds: newRoutingMode === "AUTO_MEMBER_GROUP" ? newAllowedGroupIds : [],
+          audience: newAudience,
         },
       });
 
@@ -172,6 +178,7 @@ function CategoryManagementPageContent() {
         setNewRoutingMode("REQUIRES_PURPOSE");
         setNewFallbackIfNoGroup("TOP_LEVEL");
         setNewAllowedGroupIds([]);
+        setNewAudience("all");
         setShowCreateForm(false);
         refetch();
       } else {
@@ -190,6 +197,7 @@ function CategoryManagementPageContent() {
     setEditRoutingMode(category.routingMode === "AUTO_MEMBER_GROUP" ? "AUTO_MEMBER_GROUP" : "REQUIRES_PURPOSE");
     setEditFallbackIfNoGroup(category.fallbackIfNoGroup === "REJECT" ? "REJECT" : "TOP_LEVEL");
     setEditAllowedGroupIds((category.allowedGroups || []).map((group) => group.id));
+    setEditAudience((category.audience as Audience) || "all");
     clearMessages();
   };
 
@@ -216,6 +224,7 @@ function CategoryManagementPageContent() {
           routingMode: editRoutingMode,
           fallbackIfNoGroup: editRoutingMode === "AUTO_MEMBER_GROUP" ? editFallbackIfNoGroup : "TOP_LEVEL",
           allowedGroupIds: editRoutingMode === "AUTO_MEMBER_GROUP" ? editAllowedGroupIds : [],
+          audience: editAudience,
         },
       });
 
@@ -422,6 +431,19 @@ function CategoryManagementPageContent() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="audience">Audience</Label>
+                    <Select value={newAudience} onValueChange={(v: Audience) => setNewAudience(v)}>
+                      <SelectTrigger id="audience">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All members</SelectItem>
+                        <SelectItem value="adult">Adults only</SelectItem>
+                        <SelectItem value="children">Children only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {newRoutingMode === "AUTO_MEMBER_GROUP" && (
                     <div className="space-y-3">
                       <div className="space-y-2">
@@ -544,6 +566,19 @@ function CategoryManagementPageContent() {
                               </SelectContent>
                             </Select>
                           </div>
+                          <div>
+                            <Label className="text-xs">Audience</Label>
+                            <Select value={editAudience} onValueChange={(v: Audience) => setEditAudience(v)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All members</SelectItem>
+                                <SelectItem value="adult">Adults only</SelectItem>
+                                <SelectItem value="children">Children only</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           {editRoutingMode === "AUTO_MEMBER_GROUP" && (
                             <div className="space-y-2">
                               <div>
@@ -620,6 +655,12 @@ function CategoryManagementPageContent() {
                               <Badge variant="secondary" className="text-xs">
                                 {category.allowedGroups?.length} allowed group{(category.allowedGroups?.length || 0) === 1 ? "" : "s"}
                               </Badge>
+                            )}
+                            {category.audience === "adult" && (
+                              <Badge className="bg-slate-100 text-slate-800 text-xs">Adults</Badge>
+                            )}
+                            {category.audience === "children" && (
+                              <Badge className="bg-blue-100 text-blue-800 text-xs">Children</Badge>
                             )}
                           </div>
                           {category.routingMode === "REQUIRES_PURPOSE" && (

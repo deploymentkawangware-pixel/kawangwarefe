@@ -96,7 +96,7 @@ export function useUserRole() {
     adminCategories: roleInfo?.adminCategories ?? [],
 
     // Helper: check if user can access a specific admin feature
-    canAccessFeature: (feature: "members" | "reports" | "category-admins" | "categories" | "groups" | "contributions" | "overview" | "c2b-transactions" | "content") => {
+    canAccessFeature: (feature: "members" | "reports" | "category-admins" | "categories" | "groups" | "contributions" | "overview" | "c2b-transactions" | "content" | "messaging" | "prayers") => {
       if (!roleInfo) return false;
 
       // Full staff can access everything

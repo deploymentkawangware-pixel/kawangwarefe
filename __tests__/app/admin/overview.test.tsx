@@ -84,8 +84,12 @@ import AdminOverviewPage from '@/app/(dashboard)/admin/page'
 
 describe('AdminOverviewPage', () => {
   it('renders the heading', () => {
-    render(<AdminOverviewPage />)
+    const { container } = render(<AdminOverviewPage />)
     expect(screen.getByText('Dashboard Overview')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="admin-header"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="admin-stats"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="admin-contributions"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-tour="admin-members"]')).toBeInTheDocument()
   })
 
   it('renders the stats card titles', () => {
@@ -107,7 +111,7 @@ describe('AdminOverviewPage', () => {
   it('renders recent contributions section', () => {
     render(<AdminOverviewPage />)
     expect(screen.getByText('Recent Contributions')).toBeInTheDocument()
-    expect(screen.getByText('Latest completed contributions')).toBeInTheDocument()
+    expect(screen.getByText('Latest contributions with status')).toBeInTheDocument()
   })
 
   it('renders member names in recent contributions', () => {

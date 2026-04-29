@@ -6,6 +6,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/admin',
 }))
 
+// Sprint 8 — layout now fetches me.avatarUrl for the sidebar avatar.
+vi.mock('@apollo/client/react', () => ({
+  useQuery: () => ({ data: { me: null }, loading: false, error: null }),
+}))
+
 vi.mock('@/lib/auth/auth-context', () => ({
   useAuth: () => ({ user: { fullName: 'Test User', phoneNumber: '254712345678' }, logout: vi.fn() }),
 }))
@@ -55,7 +60,7 @@ describe('AdminLayout', () => {
 
   it('shows Member View button', () => {
     render(<AdminLayout><div>C</div></AdminLayout>)
-    expect(screen.getByText('Member View')).toBeInTheDocument()
+    expect(screen.getByText('Switch to Member View')).toBeInTheDocument()
   })
 
   it('shows Logout button', () => {

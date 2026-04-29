@@ -9,8 +9,8 @@ import { gql } from "@apollo/client";
  * Get all active contribution categories
  */
 export const GET_CONTRIBUTION_CATEGORIES = gql`
-  query GetContributionCategories {
-    contributionCategories(isActive: true) {
+  query GetContributionCategories($audience: String) {
+    contributionCategories(isActive: true, audience: $audience) {
       id
       name
       code
@@ -18,6 +18,7 @@ export const GET_CONTRIBUTION_CATEGORIES = gql`
       isActive
       routingMode
       fallbackIfNoGroup
+      audience
       allowedGroups {
         id
         name
@@ -146,6 +147,45 @@ export const GET_MEMBER_BY_PHONE = gql`
       memberNumber
       email
       isActive
+    }
+  }
+`;
+
+/**
+ * Get the authenticated member's contribution totals and breakdowns.
+ */
+export const GET_MY_CONTRIBUTION_STATS = gql`
+  query GetMyContributionStats {
+    myContributionStats {
+      totalAmount
+      totalCount
+      byDepartment {
+        department {
+          id
+          name
+          code
+        }
+        totalAmount
+        totalCount
+        byPurpose {
+          purpose {
+            id
+            name
+            code
+          }
+          totalAmount
+          totalCount
+        }
+        byGroup {
+          group {
+            id
+            name
+          }
+          totalAmount
+          totalCount
+          isTopLevel
+        }
+      }
     }
   }
 `;

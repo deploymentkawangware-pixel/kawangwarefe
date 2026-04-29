@@ -79,6 +79,29 @@ export const DELETE_ANNOUNCEMENT = gql`
   }
 `;
 
+export const BULK_CREATE_ANNOUNCEMENTS = gql`
+  mutation BulkCreateAnnouncements($items: [BulkAnnouncementInput!]!) {
+    bulkCreateAnnouncements(items: $items) {
+      success
+      message
+      createdCount
+      failedCount
+      errors
+      announcements {
+        id
+        title
+        content
+        publishDate
+        expiryDate
+        isActive
+        priority
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
 export const TOGGLE_ANNOUNCEMENT_ACTIVE = gql`
   mutation ToggleAnnouncementActive($announcementId: ID!) {
     toggleAnnouncementActive(announcementId: $announcementId) {

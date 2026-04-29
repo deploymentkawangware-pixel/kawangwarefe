@@ -157,7 +157,7 @@ function AdminDashboardContent() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div data-tour="admin-header" className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
           <p className="text-muted-foreground">

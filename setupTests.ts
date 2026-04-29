@@ -6,6 +6,17 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// jsdom lacks ResizeObserver; Radix UI primitives (Checkbox, etc.) need it.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class _ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  // @ts-expect-error — shim for tests
+  globalThis.ResizeObserver = _ResizeObserverStub
+}
+
 // ---------------------------------------------------------------------------
 // Mock Next.js navigation (used by ProtectedRoute, AdminLayout, etc.)
 // ---------------------------------------------------------------------------
@@ -32,13 +43,14 @@ vi.mock('next/image', () => ({
 }))
 
 // ---------------------------------------------------------------------------
-// Mock next/link — renders a standard <a> so href assertions work
+// Mock next/link — renders a React <a> so href + children assertions work.
+// Previously returned a raw DOM element; React 19 rejects that when the
+// link has children, so we use createElement to keep things idiomatic.
 // ---------------------------------------------------------------------------
 vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode;[key: string]: unknown }) => {
-    const a = document.createElement('a')
-    a.href = href as string
-    return a
+  default: ({ href, children, ...props }: { href: string; children?: React.ReactNode;[key: string]: unknown }) => {
+    const React = require('react')
+    return React.createElement('a', { href, ...props }, children)
   },
 }))
 

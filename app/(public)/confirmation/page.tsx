@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Clock, XCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { LoginButton } from "@/components/auth/login-button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { MemberLayout } from "@/components/layouts/member-layout";
 
 interface Contribution {
   id: string;
@@ -455,25 +456,24 @@ function ActionButtons({
 function ConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const contributionId = searchParams.get("id");
   const checkoutRequestId = searchParams.get("checkoutRequestId");
 
   // Route to the appropriate mode
+  let content: React.ReactNode;
+
   if (contributionId) {
-    return (
+    content = (
       <SingleContributionConfirmation
         contributionId={contributionId}
         checkoutRequestId={checkoutRequestId ?? ""}
       />
     );
-  }
-
-  if (checkoutRequestId) {
-    return <MultiContributionConfirmation checkoutRequestId={checkoutRequestId} />;
-  }
-
-  // No params at all
-  return (
+  } else if (checkoutRequestId) {
+    content = <MultiContributionConfirmation checkoutRequestId={checkoutRequestId} />;
+  } else {
+    content = (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center px-4">
       <Card className="max-w-md w-full">
         <CardHeader>
@@ -488,7 +488,10 @@ function ConfirmationContent() {
         </CardContent>
       </Card>
     </div>
-  );
+    );
+  }
+
+  return isAuthenticated ? <MemberLayout>{content}</MemberLayout> : content;
 }
 
 export default function ConfirmationPage() {

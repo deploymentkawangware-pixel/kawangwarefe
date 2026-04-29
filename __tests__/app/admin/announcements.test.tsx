@@ -3,45 +3,72 @@ import { render, screen } from '@testing-library/react'
 
 // Mock Apollo
 vi.mock('@apollo/client/react', () => ({
-  useQuery: vi.fn().mockImplementation(() => ({
-    data: {
-      announcements: [
-        {
-          id: 'a1',
-          title: 'Church Renovation Update',
-          content: 'The renovation of the main sanctuary is on track',
-          publishDate: '2025-03-15T00:00:00Z',
-          isActive: true,
-          priority: 2,
-          createdAt: '2025-03-10T00:00:00Z',
-          updatedAt: '2025-03-10T00:00:00Z',
+  useQuery: vi.fn().mockImplementation((doc: any) => {
+    const name = doc?.definitions?.[0]?.name?.value ?? ''
+    if (name === 'GetAdminAnnouncements') {
+      return {
+        data: {
+          adminAnnouncements: {
+            total: 3,
+            hasMore: false,
+            items: [
+              {
+                id: 'a1',
+                title: 'Church Renovation Update',
+                content: 'The renovation of the main sanctuary is on track',
+                publishDate: '2025-03-15T00:00:00Z',
+                isActive: true,
+                priority: 2,
+                createdAt: '2025-03-10T00:00:00Z',
+                updatedAt: '2025-03-10T00:00:00Z',
+              },
+              {
+                id: 'a2',
+                title: 'Bible Study Schedule',
+                content: 'New bible study sessions start next week on Wednesday evenings',
+                publishDate: '2025-03-01T00:00:00Z',
+                isActive: true,
+                priority: 0,
+                createdAt: '2025-02-28T00:00:00Z',
+                updatedAt: '2025-02-28T00:00:00Z',
+              },
+              {
+                id: 'a3',
+                title: 'Old Announcement',
+                content: 'This announcement is no longer active',
+                publishDate: '2025-01-01T00:00:00Z',
+                isActive: false,
+                priority: 0,
+                createdAt: '2025-01-01T00:00:00Z',
+                updatedAt: '2025-01-01T00:00:00Z',
+              },
+            ],
+          },
         },
-        {
-          id: 'a2',
-          title: 'Bible Study Schedule',
-          content: 'New bible study sessions start next week on Wednesday evenings',
-          publishDate: '2025-03-01T00:00:00Z',
-          isActive: true,
-          priority: 0,
-          createdAt: '2025-02-28T00:00:00Z',
-          updatedAt: '2025-02-28T00:00:00Z',
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      }
+    }
+    if (name === 'GetAdminAnnouncementCounts') {
+      return {
+        data: {
+          adminAnnouncementCounts: {
+            total: 3,
+            active: 2,
+            inactive: 1,
+            scheduled: 0,
+            expired: 0,
+            highPriority: 1,
+          },
         },
-        {
-          id: 'a3',
-          title: 'Old Announcement',
-          content: 'This announcement is no longer active',
-          publishDate: '2025-01-01T00:00:00Z',
-          isActive: false,
-          priority: 0,
-          createdAt: '2025-01-01T00:00:00Z',
-          updatedAt: '2025-01-01T00:00:00Z',
-        },
-      ],
-    },
-    loading: false,
-    error: null,
-    refetch: vi.fn(),
-  })),
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      }
+    }
+    return { data: null, loading: false, error: null, refetch: vi.fn() }
+  }),
   useMutation: () => [vi.fn(), { loading: false }],
 }))
 

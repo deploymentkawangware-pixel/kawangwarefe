@@ -362,7 +362,7 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
   if (step === "input") {
     return (
       <Card className="w-full shadow-lg border border-emerald-200/30 dark:border-emerald-800/30">
-        <CardHeader className="space-y-2 border-b border-emerald-100/50 dark:border-emerald-900/30 pb-4">
+        <CardHeader data-tour="contribution-header" className="space-y-2 border-b border-emerald-100/50 dark:border-emerald-900/30 pb-4">
           <CardTitle className="text-2xl md:text-3xl bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400 bg-clip-text text-transparent">
             Make a Contribution
           </CardTitle>
@@ -373,13 +373,15 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
         </CardHeader>
         <CardContent className="pt-6">
           <form className="space-y-5">
-            <PhoneInput
-              name="phoneNumber"
-              register={register}
-              error={errors.phoneNumber}
-            />
+            <div data-tour="contribution-phone">
+              <PhoneInput
+                name="phoneNumber"
+                register={register}
+                error={errors.phoneNumber}
+              />
+            </div>
 
-            <div className="space-y-2">
+            <div data-tour="contribution-categories" className="space-y-2">
               <MultiCategorySelector
                 contributions={contributions}
                 onChange={(newContributions) =>
@@ -416,6 +418,7 @@ export function ContributionForm({ onSuccess }: ContributionFormProps) {
 
             <Button
               type="button"
+              data-tour="contribution-review-btn"
               className="w-full h-11 bg-gradient-to-r from-teal-600 via-emerald-600 to-blue-600 hover:from-teal-700 hover:via-emerald-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
               onClick={handleReviewClick}
               size="lg"

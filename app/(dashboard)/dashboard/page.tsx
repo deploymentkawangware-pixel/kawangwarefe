@@ -8,6 +8,7 @@
 "use client";
 
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { MemberLayout } from "@/components/layouts/member-layout";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useQuery } from "@apollo/client/react";
 import { GET_MY_CONTRIBUTIONS } from "@/lib/graphql/queries";
@@ -18,7 +19,7 @@ import { useTour } from "@/hooks/use-tour";
 import { WELCOME_TOUR_CONFIG } from "@/lib/tours/tour-configs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut, TrendingUp, DollarSign, Calendar, Shield, FolderKey, Newspaper, Heart, HelpCircle } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, Shield, FolderKey } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
@@ -52,7 +53,7 @@ interface DashboardStatsData {
 
 function DashboardContent() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { start: startWelcomeTour, isReady } = useTour({
     tourKey: "welcome_tour",
     steps: WELCOME_TOUR_CONFIG.steps || [],
@@ -113,77 +114,48 @@ function DashboardContent() {
 
   const completedCount = contributions.filter((c) => c.status === "completed").length;
 
-  const handleLogout = async () => {
-    await logout();
-    toast.success("Logged out successfully");
-    router.push("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Header */}
-      <header data-tour="dashboard-header" className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">My Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome, {user?.fullName}</p>
+    <ProtectedRoute>
+      <MemberLayout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+          {/* Header */}
+          <header data-tour="dashboard-header" className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">My Dashboard</h1>
+                  <p className="text-sm text-muted-foreground">Welcome, {user?.fullName}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-4">
-              {isStaff && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => router.push("/admin")}
-                >
-                  <Shield className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Admin Panel</span>
-                </Button>
-              )}
-              {(isContentAdmin || isStaff) && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                  onClick={() => router.push("/admin/content")}
-                >
-                  <Newspaper className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Church Content</span>
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/contribute")}
-                data-tour="dashboard-contribute-btn"
-              >
-                <Heart className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Make Contribution</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => startWelcomeTour()}
-                title="View welcome guide"
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Guide</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
+          {/* Main Content */}
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
+        <Card data-tour="dashboard-snapshot" className="mb-6 border-teal-200/70 bg-white/80 dark:bg-slate-800/80 backdrop-blur">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400">
+                  Your Giving Snapshot
+                </p>
+                <h2 className="text-lg font-semibold">View total contributions and breakdown</h2>
+                <p className="text-sm text-muted-foreground">
+                  Tap to see your full totals by department, purpose, and group.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" onClick={() => router.push("/profile#contribution-totals")}>
+                  View Totals
+                </Button>
+                <Button variant="outline" onClick={() => router.push("/contribute")}>
+                  Give Now
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Summary Cards */}
         <div data-tour="dashboard-stats" className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -391,15 +363,13 @@ function DashboardContent() {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+          </main>
+        </div>
+      </MemberLayout>
+    </ProtectedRoute>
   );
 }
 
 export default function DashboardPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  );
+  return <DashboardContent />;
 }

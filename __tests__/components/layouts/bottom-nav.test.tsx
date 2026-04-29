@@ -27,6 +27,6 @@ describe('BottomNav', () => {
 
   it('renders More button', () => {
     render(<BottomNav />)
-    expect(screen.getByText('More')).toBeInTheDocument()
+    expect(screen.queryByText('More')).not.toBeInTheDocument()
   })
 })

@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { BookOpen, BookMarked, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -23,6 +30,7 @@ interface DevotionalsSectionProps {
 export function DevotionalsSection({ devotionals: initialDevotionals }: DevotionalsSectionProps) {
   const [egwDevotional, setEgwDevotional] = useState<Devotional | null>(null);
   const [loadingEgw, setLoadingEgw] = useState(true);
+  const [openDevotional, setOpenDevotional] = useState<Devotional | null>(null);
 
   useEffect(() => {
     async function fetchEgw() {
@@ -129,13 +137,22 @@ export function DevotionalsSection({ devotionals: initialDevotionals }: Devotion
                   <CardContent>
                      {/* Split by double newline to render paragraphs properly */}
                      <div className="space-y-4 mb-4 text-muted-foreground">
-                       {featured.content.split("\n\n").map((para, idx) => (
-                          <p key={idx} className="line-clamp-4">{para}</p>
+                       {featured.content.split("\n\n").slice(0, 2).map((para, idx) => (
+                          <p key={idx} className={idx === 1 ? "line-clamp-4" : ""}>{para}</p>
                        ))}
                      </div>
-                    <p className="text-xs text-muted-foreground font-semibold">
-                      {format(new Date(featured.publishDate), "MMMM d, yyyy")}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground font-semibold">
+                        {format(new Date(featured.publishDate), "MMMM d, yyyy")}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setOpenDevotional(featured)}
+                      >
+                        Read more
+                      </Button>
+                    </div>
                   </CardContent>
                 </div>
               </div>
@@ -159,10 +176,18 @@ export function DevotionalsSection({ devotionals: initialDevotionals }: Devotion
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm line-clamp-3 mb-3">{devotional.content}</p>
-                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-3">
                       <span>{devotional.author}</span>
                       <span>{format(new Date(devotional.publishDate), "MMM d")}</span>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setOpenDevotional(devotional)}
+                    >
+                      Read more
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -170,6 +195,41 @@ export function DevotionalsSection({ devotionals: initialDevotionals }: Devotion
           )}
         </div>
       </div>
+
+      <Dialog
+        open={!!openDevotional}
+        onOpenChange={(open) => !open && setOpenDevotional(null)}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          {openDevotional && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-1">
+                  <BookMarked className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-primary font-semibold uppercase tracking-wide">
+                    Daily Devotional
+                  </span>
+                </div>
+                <DialogTitle className="text-2xl">{openDevotional.title}</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {openDevotional.scriptureReference} • {openDevotional.author}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(openDevotional.publishDate), "MMMM d, yyyy")}
+                </p>
+              </DialogHeader>
+              <div className="space-y-4 mt-4 text-base leading-relaxed">
+                {openDevotional.content
+                  .split("\n\n")
+                  .filter((p) => p.trim().length > 0)
+                  .map((para, idx) => (
+                    <p key={idx}>{para}</p>
+                  ))}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -88,8 +88,8 @@ export function useTour({
       stagePadding: 10,
       steps: driverSteps,
       onDestroyStarted: () => {
-        // Fire mutation but don't wait for it (non-blocking)
-        // This allows the tour to close immediately
+        // driver.js v1: overriding this hook means we own the close —
+        // must call destroy() explicitly or the popover stays on screen.
         markComplete({
           variables: {
             tutorialKey: tourKey,
@@ -98,6 +98,7 @@ export function useTour({
         }).catch((error) => {
           console.warn(`Failed to mark tutorial '${tourKey}' as complete:`, error);
         });
+        driverRef.current?.destroy();
       },
     };
 
