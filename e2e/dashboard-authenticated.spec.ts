@@ -1,20 +1,72 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import { injectSession, clearSession } from "./helpers/auth";
+
+/**
+ * Pre-empt the two first-run overlays this page can show, both of which
+ * cover the full viewport and block clicks on the real content underneath:
+ *
+ * 1. OnboardingCarousel — gated by a localStorage flag
+ *    (`cfms_onboarding_complete`); seed it so the carousel never mounts.
+ * 2. An auto-started driver.js "welcome tour" — gated by an
+ *    `isTutorialCompleted` GraphQL query; the generic auth.ts mock resolves
+ *    that (like any unlisted query) to `data: null`, i.e. "not completed",
+ *    so the dashboard fires it ~500ms after load. Layer a route override on
+ *    top of injectSession's that answers `isTutorialCompleted: true` and
+ *    falls back to the existing handler for everything else.
+ */
+async function suppressFirstRunOverlays(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("cfms_onboarding_complete", "true");
+  });
+  await page.route(/\/graphql\/?$/, async (route, request) => {
+    let query = "";
+    try {
+      query = request.postDataJSON()?.query ?? "";
+    } catch {
+      // ignore
+    }
+    if (query.includes("isTutorialCompleted")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { isTutorialCompleted: true } }),
+      });
+      return;
+    }
+    await route.fallback();
+  });
+}
 
 test.describe("Dashboard -- Authenticated Content", () => {
   test.beforeEach(async ({ page }) => {
-    await injectSession(page, { fullName: "John Doe", phoneNumber: "254797030300" });
+    // role: "member" makes injectSession intercept ALL GraphQL calls (not
+    // just currentUserRole) — without it, this describe block was making
+    // real network calls to NEXT_PUBLIC_GRAPHQL_URL (a LAN backend address
+    // in .env.local) that hang for tens of seconds when that host isn't
+    // reachable, which is exactly what caused the logout test below to time
+    // out once the first-run overlays were dealt with and the test could
+    // actually reach the Logout button.
+    await injectSession(page, { role: "member", fullName: "John Doe", phoneNumber: "254797030300" });
+    await suppressFirstRunOverlays(page);
     await page.goto("/dashboard", { waitUntil: "networkidle" });
+    // "networkidle" resolves before React finishes rendering — wait for the
+    // heading so later checks don't race hydration.
+    await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
   });
 
   test("renders dashboard heading with user name", async ({ page }) => {
     await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
-    // Welcome message should show the user name
-    await expect(page.getByText(/john doe/i)).toBeVisible();
+    // "John Doe" also appears in the sidebar and the desktop header (both
+    // just render the bare name) — match the page's own "Welcome, John Doe"
+    // text specifically to avoid the strict-mode multi-match violation.
+    await expect(page.getByText(/welcome, john doe/i)).toBeVisible();
   });
 
   test("renders summary cards", async ({ page }) => {
-    await expect(page.getByText(/total contributions/i)).toBeVisible();
+    // "Total Contributions" (StatCard title) is a substring of the "Giving
+    // Snapshot" card's h2 ("View total contributions and breakdown") under a
+    // case-insensitive match — use the exact card title to disambiguate.
+    await expect(page.getByText("Total Contributions", { exact: true })).toBeVisible();
     await expect(page.getByText(/this month/i)).toBeVisible();
     // "Status" appears in both card title and table header; use first()
     await expect(page.getByText("Status").first()).toBeVisible();
@@ -57,8 +109,10 @@ test.describe("Dashboard -- Authenticated Content", () => {
 
 test.describe("Dashboard -- Make Contribution navigation", () => {
   test("Make Contribution button navigates to /contribute", async ({ page }) => {
-    await injectSession(page);
+    await injectSession(page, { role: "member" });
+    await suppressFirstRunOverlays(page);
     await page.goto("/dashboard", { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
 
     const contributeBtn = page.getByRole("button", { name: /contribution/i });
     if (await contributeBtn.count() > 0) {
