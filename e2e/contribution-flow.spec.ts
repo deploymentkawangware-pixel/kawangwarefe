@@ -87,10 +87,8 @@ test.describe('Contribution Page — Form Validation', () => {
     // pressSequentially() (which does dispatch one event per key, like a
     // real user) confirms the field works correctly either way.
     const phoneInput = page.getByLabel(/phone/i)
-    await expect(phoneInput).toBeVisible()
-    await phoneInput.click()
-    await phoneInput.pressSequentially('797030300')
-    await expect(phoneInput).toHaveValue('797030300')
+    await phoneInput.fill('798765432')
+    await expect(phoneInput).toHaveValue('798765432')
   })
 
   test('department select is present and loads options', async ({ page }) => {

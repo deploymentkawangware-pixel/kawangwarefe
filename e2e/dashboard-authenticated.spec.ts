@@ -39,15 +39,7 @@ async function suppressFirstRunOverlays(page: Page) {
 
 test.describe("Dashboard -- Authenticated Content", () => {
   test.beforeEach(async ({ page }) => {
-    // role: "member" makes injectSession intercept ALL GraphQL calls (not
-    // just currentUserRole) — without it, this describe block was making
-    // real network calls to NEXT_PUBLIC_GRAPHQL_URL (a LAN backend address
-    // in .env.local) that hang for tens of seconds when that host isn't
-    // reachable, which is exactly what caused the logout test below to time
-    // out once the first-run overlays were dealt with and the test could
-    // actually reach the Logout button.
-    await injectSession(page, { role: "member", fullName: "John Doe", phoneNumber: "254797030300" });
-    await suppressFirstRunOverlays(page);
+    await injectSession(page, { fullName: "John Doe", phoneNumber: "254798765432" });
     await page.goto("/dashboard", { waitUntil: "networkidle" });
     // "networkidle" resolves before React finishes rendering — wait for the
     // heading so later checks don't race hydration.

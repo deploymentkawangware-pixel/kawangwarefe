@@ -108,7 +108,7 @@ function LoginContent() {
     const target = e.currentTarget as unknown as { value: string };
     let value = (target.value || "").replaceAll(/\D/g, "");
 
-    // If user starts with 0, remove it (they should just type 797030300)
+    // If user starts with 0, remove it (they should just type 798765432)
     if (value.startsWith("0")) {
       value = value.substring(1);
     }
@@ -172,68 +172,47 @@ function LoginContent() {
                 <button
                   type="button"
                   onClick={() => setChannel("sms")}
-                  className={`py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                    channel === "sms"
+                  className={`py-2 text-sm font-medium rounded-md transition-all duration-200 ${channel === "sms"
                       ? "bg-background text-foreground shadow-sm font-semibold"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   Phone Number
                 </button>
                 <button
                   type="button"
                   onClick={() => setChannel("email")}
-                  className={`py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                    channel === "email"
+                  className={`py-2 text-sm font-medium rounded-md transition-all duration-200 ${channel === "email"
                       ? "bg-background text-foreground shadow-sm font-semibold"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   Email Address
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {channel === "sms" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber" className="text-base font-medium">Phone Number</Label>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">
-                        +254
-                      </div>
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        placeholder="797030300"
-                        value={phoneNumber}
-                        onChange={handlePhoneChange}
-                        required
-                        disabled={isSubmitting}
-                        className="text-lg pl-16 h-12"
-                      />
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-base font-medium">Phone Number</Label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">
+                      +254
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Enter your 9-digit M-Pesa number (e.g., 797030300)
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-base font-medium">Email Address</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="798765432"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
                       required
                       disabled={isSubmitting}
-                      className="text-lg h-12"
+                      className="text-lg pl-16 h-12"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Enter your registered email address
-                    </p>
                   </div>
-                )}
+                  <p className="text-xs text-muted-foreground">
+                    Enter your 9-digit M-Pesa number (e.g., 798765432)
+                  </p>
+                </div>
 
                 <Button
                   type="submit"
