@@ -43,6 +43,7 @@ async function refreshAccessToken(): Promise<string | null> {
               refreshToken(refreshToken: $refreshToken) {
                 success
                 accessToken
+                refreshToken
               }
             }`,
             variables: { refreshToken },
@@ -53,6 +54,11 @@ async function refreshAccessToken(): Promise<string | null> {
       const result = data?.data?.refreshToken;
       if (result?.success && result?.accessToken) {
         localStorage.setItem("access_token", result.accessToken);
+        // Rotation is on: the old refresh token gets blacklisted server-side,
+        // so the new one must be persisted or the next refresh attempt fails.
+        if (result.refreshToken) {
+          localStorage.setItem("refresh_token", result.refreshToken);
+        }
         return result.accessToken;
       }
     } catch {

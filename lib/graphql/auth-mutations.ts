@@ -98,6 +98,7 @@ export const REFRESH_TOKEN = gql`
       success
       message
       accessToken
+      refreshToken
     }
   }
 `;
