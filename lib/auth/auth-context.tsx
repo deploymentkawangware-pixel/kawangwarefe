@@ -99,6 +99,7 @@ interface VerifyOtpPayload {
 interface RefreshTokenPayload {
   success: boolean;
   accessToken?: string;
+  refreshToken?: string;
   message: string;
 }
 
@@ -199,6 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 refreshToken(refreshToken: $refreshToken) {
                   success
                   accessToken
+                  refreshToken
                 }
               }`,
               variables: { refreshToken: storedRefresh },
@@ -210,6 +212,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (result?.success && result?.accessToken) {
           localStorage.setItem(TOKEN_KEY, result.accessToken);
+          // Rotation is on server-side (ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION):
+          // the old refresh token is blacklisted, so the new one MUST be persisted
+          // or the next refresh cycle will fail and log the user out.
+          if (result.refreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+          }
           setAccessToken(result.accessToken);
           setUser(JSON.parse(storedUser));
           setSessionCookie(true);
@@ -273,6 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       refreshToken(refreshToken: $refreshToken) {
                         success
                         accessToken
+                        refreshToken
                       }
                     }`,
                     variables: { refreshToken: storedRefresh },
@@ -283,6 +292,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const result = json?.data?.refreshToken;
               if (result?.success && result?.accessToken) {
                 localStorage.setItem(TOKEN_KEY, result.accessToken);
+                // Persist the rotated refresh token — see note in the initial-load
+                // refresh effect above for why skipping this breaks long sessions.
+                if (result.refreshToken) {
+                  localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+                }
                 setAccessToken(result.accessToken);
                 setSessionCookie(true);
               }
@@ -447,6 +461,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.success && result.accessToken) {
         localStorage.setItem(TOKEN_KEY, result.accessToken);
+        if (result.refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+        }
         setAccessToken(result.accessToken);
         setSessionCookie(true);
         return true;
